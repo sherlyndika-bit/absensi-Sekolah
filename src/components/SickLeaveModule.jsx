@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { store } from '../firebase/services';
-import { FileText, Camera, ShieldAlert, CheckCircle2, UploadCloud, ImageOff, Lock } from 'lucide-react';
+import { FileText, Camera, CheckCircle2, UploadCloud, Lock } from 'lucide-react';
 
 export default function SickLeaveModule() {
   const [data, setData] = useState(store.getState());
@@ -19,9 +19,7 @@ export default function SickLeaveModule() {
 
   const selectedStudent = data.students.find(s => s.id === selectedStudentId) || data.students[0];
 
-  const handleSimulateDirectCameraCapture = () => {
-    setPhotoCaptured(true);
-  };
+  const handleSimulateDirectCameraCapture = () => setPhotoCaptured(true);
 
   const handleSubmitLeave = (e) => {
     e.preventDefault();
@@ -30,7 +28,7 @@ export default function SickLeaveModule() {
       return;
     }
     if (!photoCaptured) {
-      alert("Harap ambil foto surat keterangan dokter langsung dari kamera.");
+      alert("Harap ambil foto surat keterangan dokter terlebih dahulu.");
       return;
     }
 
@@ -45,45 +43,42 @@ export default function SickLeaveModule() {
       capturedDirectFromCamera: true
     });
 
-    setSuccessMessage(`Surat Izin/Sakit berhasil terkirim ke Wali Kelas! ID Pengajuan: ${req.id}`);
+    setSuccessMessage(`Permohonan ${category} Berhasil Dikirim ke Wali Kelas! (ID: ${req.id})`);
     setReason('');
     setPhotoCaptured(false);
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-xl mx-auto space-y-6">
       
-      <div className="glass-card-glow p-6 rounded-3xl border border-emerald-500/30 space-y-6">
+      <div className="clean-card p-6 space-y-5">
         
         {/* Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-          <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
-            <FileText className="w-6 h-6" />
+        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100">
+          <div className="w-8 h-8 rounded-lg bg-blue-900 text-white flex items-center justify-center font-bold">
+            <FileText className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">PENGAJUAN IZIN SAKIT & CUTI BERBASIS DOKUMEN</h2>
-            <p className="text-xs text-slate-400">Pengunggahan Foto Surat Keterangan Dokter Berpengaman Tinggi</p>
+            <h2 className="font-bold text-slate-900 text-sm">Pengajuan Izin Sakit & Cuti Siswa</h2>
+            <p className="text-[11px] text-slate-500">Unggah Surat Dokter via Kamera HP</p>
           </div>
         </div>
 
-        {/* Anti-Gallery Security Alert */}
-        <div className="bg-amber-950/40 p-4 rounded-xl border border-amber-500/40 text-amber-200 text-xs flex items-center gap-3">
-          <Lock className="w-6 h-6 flex-shrink-0 text-amber-400" />
-          <div>
-            <strong className="block font-bold">Fitur Akses Galeri HP Dinonaktifkan (Security Protocol)</strong>
-            <span>Foto surat dokter harus diambil secara langsung dari kamera HP secara real-time untuk mencegah penggunaan foto lama/palsu.</span>
-          </div>
+        {/* Info Alert */}
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs flex items-center gap-2">
+          <Lock className="w-4 h-4 text-amber-700 flex-shrink-0" />
+          <span>Pengambilan foto dilakukan langsung dari kamera HP (Gallery upload disabled untuk keamanan).</span>
         </div>
 
         <form onSubmit={handleSubmitLeave} className="space-y-4 text-xs">
           
-          {/* Student Selector */}
+          {/* Pilih Siswa */}
           <div>
-            <label className="text-slate-400 mb-1 block">Pilih Siswa:</label>
+            <label className="text-slate-600 font-medium mb-1 block">Pilih Siswa:</label>
             <select
               value={selectedStudentId}
               onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-900"
             >
               {data.students.map(s => (
                 <option key={s.id} value={s.id}>{s.name} ({s.classId})</option>
@@ -91,99 +86,92 @@ export default function SickLeaveModule() {
             </select>
           </div>
 
-          {/* Category Selector */}
+          {/* Kategori */}
           <div>
-            <label className="text-slate-400 mb-1 block">Kategori Pengajuan:</label>
-            <div className="grid grid-cols-2 gap-3">
+            <label className="text-slate-600 font-medium mb-1 block">Kategori:</label>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setCategory('Sakit')}
-                className={`py-2.5 rounded-xl font-bold border transition-all ${
+                className={`py-2 rounded-lg font-bold border transition-colors ${
                   category === 'Sakit' 
-                    ? 'bg-purple-500 text-white border-purple-400 shadow-lg shadow-purple-500/20' 
-                    : 'bg-slate-900 text-slate-400 border-slate-800'
+                    ? 'bg-blue-900 text-white border-blue-900' 
+                    : 'bg-slate-50 text-slate-600 border-slate-200'
                 }`}
               >
-                🏥 Sakit (Wajib Surat Dokter)
+                🏥 Sakit (Surat Dokter)
               </button>
               <button
                 type="button"
                 onClick={() => setCategory('Izin')}
-                className={`py-2.5 rounded-xl font-bold border transition-all ${
+                className={`py-2 rounded-lg font-bold border transition-colors ${
                   category === 'Izin' 
-                    ? 'bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-500/20' 
-                    : 'bg-slate-900 text-slate-400 border-slate-800'
+                    ? 'bg-blue-900 text-white border-blue-900' 
+                    : 'bg-slate-50 text-slate-600 border-slate-200'
                 }`}
               >
-                📝 Izin Alasan Penting
+                📝 Izin Kepentingan Orang Tua
               </button>
             </div>
           </div>
 
-          {/* Reason Textarea */}
+          {/* Alasan */}
           <div>
-            <label className="text-slate-400 mb-1 block">Detail Alasan / Diagnosa Dokter:</label>
+            <label className="text-slate-600 font-medium mb-1 block">Detail Alasan / Diagnosa Dokter:</label>
             <textarea
               rows="3"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Contoh: Demam tinggi 38.5°C dan flu berat, diminta istirahat dokter 2 hari..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              placeholder="Contoh: Demam tinggi 38.5°C, diminta istirahat dokter 2 hari..."
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-900"
             ></textarea>
           </div>
 
-          {/* Direct Camera Capture Trigger */}
+          {/* Kamera Upload */}
           <div>
-            <label className="text-slate-400 mb-1 block">Foto Surat Keterangan Dokter (Direct Camera Only):</label>
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center space-y-3">
+            <label className="text-slate-600 font-medium mb-1 block">Foto Surat Keterangan Dokter:</label>
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-center space-y-3">
               
               {photoCaptured ? (
-                <div className="space-y-3">
-                  <img src={sampleMedicalNoteUrl} alt="Medical Note" className="w-full max-h-48 object-cover rounded-xl border border-slate-700" />
-                  <div className="flex items-center justify-center gap-1.5 text-emerald-400 font-bold text-xs">
-                    <CheckCircle2 className="w-4 h-4" /> Foto Surat Dokter Terambil (Direct Camera Stream)
-                  </div>
+                <div className="space-y-2">
+                  <img src={sampleMedicalNoteUrl} alt="Surat Dokter" className="w-full max-h-40 object-cover rounded-lg border border-slate-300" />
+                  <span className="text-emerald-700 font-bold text-xs inline-flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" /> Foto Surat Dokter Terambil
+                  </span>
                 </div>
               ) : (
-                <div className="py-6 space-y-3">
-                  <div className="w-14 h-14 rounded-full bg-slate-900 text-slate-400 mx-auto flex items-center justify-center border border-slate-800">
-                    <Camera className="w-7 h-7" />
-                  </div>
-                  <p className="text-slate-400">Tekan tombol di bawah untuk membuka kamera langsung:</p>
+                <div className="py-4 space-y-2">
+                  <Camera className="w-8 h-8 text-slate-400 mx-auto" />
+                  <p className="text-slate-500">Foto fisik surat keterangan dokter</p>
                 </div>
               )}
 
-              <div className="flex items-center justify-center gap-2 pt-2 border-t border-slate-900">
-                <span className="text-[10px] text-rose-400 flex items-center gap-1 font-semibold">
-                  <ImageOff className="w-3 h-3" /> Upload Galeri Ditolak
-                </span>
-                <button
-                  type="button"
-                  onClick={handleSimulateDirectCameraCapture}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold rounded-xl shadow-lg shadow-emerald-500/20"
-                >
-                  {photoCaptured ? 'Ambil Ulang Foto' : 'Buka Kamera & Foto Surat'}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleSimulateDirectCameraCapture}
+                className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
+              >
+                {photoCaptured ? 'Foto Ulang Surat' : 'Buka Kamera & Foto Surat'}
+              </button>
 
             </div>
           </div>
 
-          {/* Success Message Alert */}
+          {/* Alert Sukses */}
           {successMessage && (
-            <div className="p-4 rounded-xl bg-emerald-950/80 border border-emerald-500/40 text-emerald-200 text-xs flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-400" />
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
               <span>{successMessage}</span>
             </div>
           )}
 
-          {/* Submit Request Button */}
+          {/* Submit */}
           <button
             type="submit"
-            className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-500 hover:from-purple-500 hover:to-indigo-400 text-white font-extrabold text-xs transition-all shadow-xl shadow-purple-500/20 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-lg bg-blue-900 hover:bg-blue-800 text-white font-bold text-xs transition-colors shadow-sm flex items-center justify-center gap-2"
           >
             <UploadCloud className="w-4 h-4" />
-            <span>KIRIM PERMOHONAN IZIN SAKIT KE FIRESTORE</span>
+            <span>KIRIM PERMOHONAN IZIN</span>
           </button>
 
         </form>

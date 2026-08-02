@@ -3,53 +3,44 @@
 @tailwind utilities;
 
 @layer utilities {
-  .glass-card {
-    background: rgba(17, 24, 39, 0.75);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-  }
-  
-  .glass-card-glow {
-    background: rgba(17, 24, 39, 0.85);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(34, 197, 94, 0.25);
-    box-shadow: 0 0 25px rgba(34, 197, 94, 0.15);
+  .clean-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+    border-radius: 0.75rem;
   }
 
-  .glass-card-danger {
-    background: rgba(17, 24, 39, 0.85);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    box-shadow: 0 0 25px rgba(239, 68, 68, 0.15);
+  .clean-card-header {
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .clean-badge-green {
+    background-color: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+
+  .clean-badge-amber {
+    background-color: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+
+  .clean-badge-blue {
+    background-color: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  .clean-badge-red {
+    background-color: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
   }
 }
 
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
-  }
-  70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 15px rgba(34, 197, 94, 0);
-  }
-  100% {
-    transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-  }
-}
-
-.camera-pulse {
-  animation: pulse-ring 2s infinite;
-}
-
-@keyframes scan-line {
-  0% { top: 0%; opacity: 0.8; }
-  50% { opacity: 1; }
-  100% { top: 100%; opacity: 0.8; }
-}
-
-.animate-scan {
-  animation: scan-line 2.5s ease-in-out infinite alternate;
+body {
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 }
