@@ -6,15 +6,24 @@ import { UserCheck, CheckCircle2, UploadCloud, AlertCircle } from 'lucide-react'
 export default function FaceEnrollment() {
   const [data, setData] = useState(store.getState());
   const [mode, setMode] = useState('self');
-  const [selectedStudentId, setSelectedStudentId] = useState(data.students[2].id);
+  const [selectedStudentId, setSelectedStudentId] = useState(() => {
+    const students = store.getState().students;
+    return students.length > 0 ? students[0].id : '';
+  });
   
   const [anglesCaptured, setAnglesCaptured] = useState({ front: false, right: false, left: false });
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
 
   useEffect(() => {
-    return store.subscribe((newState) => setData(newState));
-  }, []);
+    return store.subscribe((newState) => {
+      setData(newState);
+      // Auto-select first student if none selected and data just arrived
+      if (!selectedStudentId && newState.students.length > 0) {
+        setSelectedStudentId(newState.students[0].id);
+      }
+    });
+  }, [selectedStudentId]);
 
   const currentStudent = data.students.find(s => s.id === selectedStudentId) || data.students[0] || {};
 
@@ -55,6 +64,16 @@ export default function FaceEnrollment() {
       setSuccessMessage("Wajah Siswa Berhasil Disetujui Langsung oleh Admin!");
     }
   };
+
+  if (data.students.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto mt-10 p-8 clean-card text-center space-y-3">
+        <UserCheck className="w-12 h-12 text-slate-300 mx-auto" />
+        <h2 className="text-lg font-bold text-slate-700">Belum Ada Data Siswa</h2>
+        <p className="text-sm text-slate-500">Silakan tambahkan data siswa terlebih dahulu di menu Dashboard Admin.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
