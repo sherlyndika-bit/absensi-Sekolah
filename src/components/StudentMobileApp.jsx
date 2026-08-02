@@ -3,9 +3,9 @@ import { store } from '../firebase/services';
 import { getRandomLivenessChallenge, checkDeviceSecurity } from '../utils/faceAndGeoUtils';
 import { Smartphone, MapPin, ShieldCheck, CheckCircle2, RefreshCw } from 'lucide-react';
 
-export default function StudentMobileApp() {
+export default function StudentMobileApp({ loggedInStudent }) {
   const [data, setData] = useState(store.getState());
-  const [selectedStudent, setSelectedStudent] = useState(data.students[0]);
+  const selectedStudent = loggedInStudent;
   
   const [simulatedDistance, setSimulatedDistance] = useState(15); 
   const [challenge, setChallenge] = useState(getRandomLivenessChallenge());
@@ -82,26 +82,13 @@ export default function StudentMobileApp() {
           </span>
         </div>
 
-        {/* Pilih Akun Siswa */}
-        <div>
-          <label className="text-xs font-medium text-slate-600 mb-1 block">Akun Siswa:</label>
-          <select 
-            value={selectedStudent.id}
-            onChange={(e) => {
-              const std = data.students.find(s => s.id === e.target.value);
-              if (std) {
-                setSelectedStudent(std);
-                handleResetChallenge();
-              }
-            }}
-            className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-900"
-          >
-            {data.students.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.classId})
-              </option>
-            ))}
-          </select>
+        {/* Info Akun Siswa (Locked) */}
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center gap-3">
+          <img src={selectedStudent.photoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png"} alt={selectedStudent.name} className="w-10 h-10 rounded-full object-cover border border-slate-300" />
+          <div>
+            <h4 className="text-sm font-bold text-slate-900">{selectedStudent.name}</h4>
+            <p className="text-xs text-slate-500">NISN: {selectedStudent.nisn} • Kelas: {selectedStudent.classId}</p>
+          </div>
         </div>
 
         {/* Status Perangkat */}

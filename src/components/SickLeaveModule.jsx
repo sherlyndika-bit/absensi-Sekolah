@@ -9,6 +9,7 @@ export default function SickLeaveModule() {
   const [category, setCategory] = useState('Sakit');
   const [reason, setReason] = useState('');
   const [photoCaptured, setPhotoCaptured] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
 
   const sampleMedicalNoteUrl = "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=400&auto=format&fit=crop&q=80";
@@ -16,8 +17,6 @@ export default function SickLeaveModule() {
   useEffect(() => {
     return store.subscribe((newState) => setData(newState));
   }, []);
-
-  const selectedStudent = data.students.find(s => s.id === selectedStudentId) || data.students[0];
 
   const handleSimulateDirectCameraCapture = () => setPhotoCaptured(true);
 
@@ -32,20 +31,24 @@ export default function SickLeaveModule() {
       return;
     }
 
-    const req = store.addLeaveRequest({
-      studentId: selectedStudent.id,
-      studentName: selectedStudent.name,
-      classId: selectedStudent.classId,
-      date: new Date().toISOString().split('T')[0],
-      category,
-      reason,
-      medicalNoteUrl: sampleMedicalNoteUrl,
-      capturedDirectFromCamera: true
-    });
+    setIsSubmitting(true);
+    setTimeout(() => {
+      const req = store.addLeaveRequest({
+        studentId: selectedStudent.id,
+        studentName: selectedStudent.name,
+        classId: selectedStudent.classId,
+        date: new Date().toISOString().split('T')[0],
+        category,
+        reason,
+        medicalNoteUrl: sampleMedicalNoteUrl,
+        capturedDirectFromCamera: true
+      });
 
-    setSuccessMessage(`Permohonan ${category} Berhasil Dikirim ke Wali Kelas! (ID: ${req.id})`);
-    setReason('');
-    setPhotoCaptured(false);
+      setSuccessMessage(`Permohonan ${category} Berhasil Dikirim ke Wali Kelas! (ID: ${req.id})`);
+      setReason('');
+      setPhotoCaptured(false);
+      setIsSubmitting(false);
+    }, 1000);
   };
 
   return (
@@ -64,6 +67,15 @@ export default function SickLeaveModule() {
           </div>
         </div>
 
+        {/* Info Akun Siswa (Locked) */}
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center gap-3">
+          <img src={selectedStudent.photoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png"} alt={selectedStudent.name} className="w-10 h-10 rounded-full object-cover border border-slate-300" />
+          <div>
+            <h4 className="text-sm font-bold text-slate-900">{selectedStudent.name}</h4>
+            <p className="text-xs text-slate-500">NISN: {selectedStudent.nisn} • Kelas: {selectedStudent.classId}</p>
+          </div>
+        </div>
+
         {/* Info Alert */}
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 text-xs flex items-center gap-2">
           <Lock className="w-4 h-4 text-amber-700 flex-shrink-0" />
@@ -71,20 +83,7 @@ export default function SickLeaveModule() {
         </div>
 
         <form onSubmit={handleSubmitLeave} className="space-y-4 text-xs">
-          
-          {/* Pilih Siswa */}
-          <div>
-            <label className="text-slate-600 font-medium mb-1 block">Pilih Siswa:</label>
-            <select
-              value={selectedStudentId}
-              onChange={(e) => setSelectedStudentId(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-xs font-semibold text-slate-800 focus:outline-none focus:border-blue-900"
-            >
-              {data.students.map(s => (
-                <option key={s.id} value={s.id}>{s.name} ({s.classId})</option>
-              ))}
-            </select>
-          </div>
+
 
           {/* Kategori */}
           <div>

@@ -5,24 +5,52 @@ import SmartKiosk from './components/SmartKiosk';
 import StudentMobileApp from './components/StudentMobileApp';
 import FaceEnrollment from './components/FaceEnrollment';
 import SickLeaveModule from './components/SickLeaveModule';
+import Login from './components/Login';
 import { School, Github, Database } from 'lucide-react';
 
 export default function App() {
+  const [user, setUser] = useState(null); // null, {role: 'admin'}, or {role: 'student', ...}
   const [activeTab, setActiveTab] = useState('admin');
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    if (userData.role === 'admin') {
+      setActiveTab('admin');
+    } else {
+      setActiveTab('mobile');
+    }
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+  };
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-['Plus_Jakarta_Sans',sans-serif]">
       
       {/* Top Navbar */}
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout} />
 
       {/* Main Dynamic View Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'admin' && <AdminDashboard />}
-        {activeTab === 'mobile' && <StudentMobileApp />}
-        {activeTab === 'kiosk' && <SmartKiosk />}
-        {activeTab === 'enrollment' && <FaceEnrollment />}
-        {activeTab === 'sick_leave' && <SickLeaveModule />}
+        {user.role === 'admin' && (
+          <>
+            {activeTab === 'admin' && <AdminDashboard />}
+            {activeTab === 'kiosk' && <SmartKiosk />}
+            {activeTab === 'enrollment' && <FaceEnrollment />}
+          </>
+        )}
+        
+        {user.role === 'student' && (
+          <>
+            {activeTab === 'mobile' && <StudentMobileApp loggedInStudent={user} />}
+            {activeTab === 'sick_leave' && <SickLeaveModule loggedInStudent={user} />}
+          </>
+        )}
       </main>
 
       {/* Clean Footer */}

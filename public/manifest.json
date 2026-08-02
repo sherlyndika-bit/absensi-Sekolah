@@ -1,0 +1,21 @@
+{
+  "name": "Sistem Absensi Siswa",
+  "short_name": "Absensi",
+  "description": "Sistem Presensi Siswa Modern SMA Negeri 1 Jakarta",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1e3a8a",
+  "icons": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/512px-User_icon_2.svg.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

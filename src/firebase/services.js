@@ -199,6 +199,32 @@ class LocalDataStore {
     this.geofence = { ...this.geofence, ...newConfig };
     this.notify();
   }
+
+  // --- Student CRUD ---
+  addStudent(studentData) {
+    const newStudent = {
+      id: `STD${Date.now().toString().slice(-4)}`,
+      faceEnrollmentStatus: 'none',
+      photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png',
+      ...studentData
+    };
+    this.students.push(newStudent);
+    this.notify();
+    return newStudent;
+  }
+
+  updateStudent(studentId, updates) {
+    const idx = this.students.findIndex(s => s.id === studentId);
+    if (idx !== -1) {
+      this.students[idx] = { ...this.students[idx], ...updates };
+      this.notify();
+    }
+  }
+
+  deleteStudent(studentId) {
+    this.students = this.students.filter(s => s.id !== studentId);
+    this.notify();
+  }
 }
 
 export const store = new LocalDataStore();
