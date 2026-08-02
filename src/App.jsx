@@ -26,22 +26,22 @@ export default function App() {
       </main>
 
       {/* Clean Footer */}
-      <footer className="bg-white border-t border-slate-200 py-6 px-4 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 font-medium text-slate-700">
-            <School className="w-4 h-4 text-blue-900" />
+      <footer className="bg-white border-t border-slate-200 py-6 px-4 text-xs text-slate-500 mt-auto">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
+          <div className="flex flex-col md:flex-row items-center gap-2 font-medium text-slate-700">
+            <School className="w-4 h-4 text-blue-900 hidden md:block" />
             <span>Sistem Presensi Siswa Modern — SMA Negeri 1 Jakarta</span>
           </div>
 
-          <div className="flex items-center gap-4 text-slate-500">
-            <span className="flex items-center gap-1.5"><Database className="w-3.5 h-3.5 text-blue-900" /> Supabase Database (Free Tier)</span>
+          <div className="flex flex-wrap justify-center items-center gap-4 text-slate-500">
+            <span className="flex items-center gap-1.5"><Database className="w-3.5 h-3.5 text-blue-900" /> Supabase Database</span>
             <a 
               href="https://github.com/sherlyndika-bit/absensi-Sekolah.git" 
               target="_blank" 
               rel="noreferrer" 
               className="flex items-center gap-1 hover:text-blue-900 font-medium transition-colors"
             >
-              <Github className="w-4 h-4" /> GitHub Repository
+              <Github className="w-4 h-4" /> GitHub Repo
             </a>
           </div>
         </div>

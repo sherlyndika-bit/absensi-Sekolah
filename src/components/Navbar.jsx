@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { School, Smartphone, Tablet, LayoutDashboard, UserCheck, FileText, Clock } from 'lucide-react';
+import { School, Smartphone, Tablet, LayoutDashboard, UserCheck, FileText, Clock, Menu } from 'lucide-react';
 
 export default function Navbar({ activeTab, setActiveTab }) {
   const [serverTime, setServerTime] = useState(new Date());
@@ -20,32 +20,34 @@ export default function Navbar({ activeTab, setActiveTab }) {
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-3 md:h-16 md:py-0">
           
           {/* Logo & School Name */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-900 text-white flex items-center justify-center font-bold shadow-xs">
-              <School className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-bold text-base text-slate-900 tracking-tight">Sistem Absensi Siswa</h1>
-                <span className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md">
-                  Supabase Connected
-                </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 shrink-0 rounded-lg bg-blue-900 text-white flex items-center justify-center font-bold shadow-xs">
+                <School className="w-5 h-5" />
               </div>
-              <p className="text-xs text-slate-500">SMA Negeri 1 Jakarta • Face Recognition & Geofencing</p>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="font-bold text-base text-slate-900 tracking-tight truncate">Sistem Absensi Siswa</h1>
+                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md whitespace-nowrap">
+                    Supabase Connected
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 truncate">SMA Negeri 1 Jakarta • Face Recognition & Geofencing</p>
+              </div>
             </div>
           </div>
 
           {/* Clock */}
-          <div className="hidden lg:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-mono text-slate-700">
+          <div className="hidden xl:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-mono text-slate-700 shrink-0">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
             <span>Server: {serverTime.toLocaleTimeString('id-ID')} WIB</span>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="flex items-center gap-1 overflow-x-auto py-2">
+          {/* Navigation Links - Scrollable on Mobile */}
+          <nav className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-hide w-full md:w-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -53,9 +55,9 @@ export default function Navbar({ activeTab, setActiveTab }) {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                     isActive
-                      ? 'bg-blue-900 text-white font-semibold shadow-xs'
+                      ? 'bg-blue-900 text-white font-semibold shadow-sm'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                   }`}
                 >
