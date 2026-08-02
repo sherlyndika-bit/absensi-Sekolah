@@ -119,32 +119,38 @@ export default function StudentManagement({ data }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {data.students.map((student) => (
-              <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
-                <td className="p-3 font-mono text-blue-900 font-medium">{student.nisn}</td>
-                <td className="p-3 font-semibold text-slate-900">{student.name}</td>
-                <td className="p-3 text-slate-500">{student.classId}</td>
-                <td className="p-3 text-slate-500">{student.parentPhone}</td>
-                <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                    student.faceEnrollmentStatus === 'approved' ? 'clean-badge-green' : 
-                    student.faceEnrollmentStatus === 'pending' ? 'clean-badge-amber' : 'clean-badge-red'
-                  }`}>
-                    {student.faceEnrollmentStatus}
-                  </span>
-                </td>
-                <td className="p-3 text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <button onClick={() => handleEdit(student)} className="p-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100" title="Edit">
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => handleDelete(student.id)} className="p-1.5 rounded bg-rose-50 text-rose-700 hover:bg-rose-100" title="Hapus">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </td>
+            {data.students.length === 0 ? (
+              <tr>
+                <td colSpan="6" className="p-8 text-center text-slate-400">Belum ada data siswa. Silakan klik Tambah Siswa.</td>
               </tr>
-            ))}
+            ) : (
+              data.students.map((student) => (
+                <tr key={student.id} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="p-3 font-mono text-blue-900 font-medium">{student.nisn}</td>
+                  <td className="p-3 font-semibold text-slate-900">{student.name}</td>
+                  <td className="p-3 text-slate-500">{student.classId}</td>
+                  <td className="p-3 text-slate-500">{student.parentPhone}</td>
+                  <td className="p-3">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                      student.faceEnrollmentStatus === 'approved' ? 'clean-badge-green' : 
+                      student.faceEnrollmentStatus === 'pending' ? 'clean-badge-amber' : 'clean-badge-red'
+                    }`}>
+                      {student.faceEnrollmentStatus}
+                    </span>
+                  </td>
+                  <td className="p-3 text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <button onClick={() => handleEdit(student)} className="p-1.5 rounded bg-amber-50 text-amber-700 hover:bg-amber-100" title="Edit">
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => handleDelete(student.id)} className="p-1.5 rounded bg-rose-50 text-rose-700 hover:bg-rose-100" title="Hapus">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

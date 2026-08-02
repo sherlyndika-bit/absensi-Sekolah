@@ -124,40 +124,46 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.attendances.map((att) => (
-                  <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-3 font-semibold text-slate-900">{att.studentName}</td>
-                    <td className="p-3 text-slate-500">{att.classId}</td>
-                    <td className="p-3 font-mono font-medium text-blue-900">{att.timeStr}</td>
-                    <td className="p-3">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
-                        {att.method === 'mobile_liveness' ? 'HP Siswa' : att.method === 'smart_kiosk' ? 'Kiosk Gate' : 'IoT Gate'}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
-                        att.distanceMeters <= data.geofence.allowedRadiusMeters 
-                          ? 'clean-badge-green' 
-                          : 'clean-badge-red'
-                      }`}>
-                        {att.distanceMeters}m ({att.distanceMeters <= data.geofence.allowedRadiusMeters ? 'Valid' : 'Luar Area'})
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <span className="clean-badge-green px-2 py-0.5 rounded text-[11px] inline-flex items-center gap-1">
-                        <Send className="w-3 h-3" /> Terkirim
-                      </span>
-                    </td>
-                    <td className="p-3 text-center">
-                      <button 
-                        onClick={() => setSelectedPhoto(att.photoProofUrl)}
-                        className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium inline-flex items-center gap-1"
-                      >
-                        <Eye className="w-3 h-3" /> Lihat
-                      </button>
-                    </td>
+                {data.attendances.length === 0 ? (
+                  <tr>
+                    <td colSpan="7" className="p-8 text-center text-slate-400">Belum ada riwayat absensi.</td>
                   </tr>
-                ))}
+                ) : (
+                  data.attendances.map((att) => (
+                    <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="p-3 font-semibold text-slate-900">{att.studentName}</td>
+                      <td className="p-3 text-slate-500">{att.classId}</td>
+                      <td className="p-3 font-mono font-medium text-blue-900">{att.timeStr}</td>
+                      <td className="p-3">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
+                          {att.method === 'mobile_liveness' ? 'HP Siswa' : att.method === 'smart_kiosk' ? 'Kiosk Gate' : 'IoT Gate'}
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                          att.distanceMeters <= data.geofence.allowedRadiusMeters 
+                            ? 'clean-badge-green' 
+                            : 'clean-badge-red'
+                        }`}>
+                          {att.distanceMeters}m ({att.distanceMeters <= data.geofence.allowedRadiusMeters ? 'Valid' : 'Luar Area'})
+                        </span>
+                      </td>
+                      <td className="p-3">
+                        <span className="clean-badge-green px-2 py-0.5 rounded text-[11px] inline-flex items-center gap-1">
+                          <Send className="w-3 h-3" /> Terkirim
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <button 
+                          onClick={() => setSelectedPhoto(att.photoProofUrl)}
+                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium inline-flex items-center gap-1"
+                        >
+                          <Eye className="w-3 h-3" /> Lihat
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
