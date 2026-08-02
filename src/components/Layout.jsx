@@ -11,10 +11,10 @@ export default function Layout({ activeTab, setActiveTab, user, onLogout, childr
 
   const navItems = [
     { id: 'admin', label: 'Dashboard Admin', icon: LayoutDashboard, roles: ['admin'] },
-    { id: 'mobile', label: 'Absen Siswa', icon: Smartphone, roles: ['admin', 'student'] },
+    { id: 'mobile', label: 'Absen Siswa', icon: Smartphone, roles: ['student'] },
     { id: 'kiosk', label: 'Smart Kiosk', icon: Tablet, roles: ['admin'] },
     { id: 'enrollment', label: 'Daftar Wajah', icon: UserCheck, roles: ['admin'] },
-    { id: 'sick_leave', label: 'Izin Sakit', icon: FileText, roles: ['admin', 'student'] },
+    { id: 'sick_leave', label: 'Izin Sakit', icon: FileText, roles: ['student'] },
   ];
 
   const visibleNavItems = navItems.filter(item => user && item.roles.includes(user.role));
