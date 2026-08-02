@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { store } from '../firebase/services';
 import { evaluateFaceQuality } from '../utils/faceAndGeoUtils';
-import { UserCheck, CheckCircle2, UploadCloud, AlertCircle } from 'lucide-react';
+import { UserCheck, CheckCircle2, UploadCloud, AlertCircle, Camera } from 'lucide-react';
 
 export default function FaceEnrollment() {
   const [data, setData] = useState(store.getState());
@@ -11,14 +11,17 @@ export default function FaceEnrollment() {
     return students.length > 0 ? students[0].id : '';
   });
   
-  const [anglesCaptured, setAnglesCaptured] = useState({ front: false, right: false, left: false });
+  const [capturedPhotos, setCapturedPhotos] = useState({ front: null, right: null, left: null });
+  const [activeCamera, setActiveCamera] = useState(null); // 'front', 'right', 'left'
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     return store.subscribe((newState) => {
       setData(newState);
-      // Auto-select first student if none selected and data just arrived
       if (!selectedStudentId && newState.students.length > 0) {
         setSelectedStudentId(newState.students[0].id);
       }
@@ -26,41 +29,72 @@ export default function FaceEnrollment() {
   }, [selectedStudentId]);
 
   const currentStudent = data.students.find(s => s.id === selectedStudentId) || data.students[0] || {};
+  const fallbackImg = "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png";
 
-  const handleCaptureAngle = (angleKey) => {
+  const handleOpenCamera = async (angleKey) => {
     setErrorMessage(null);
     setSuccessMessage(null);
-
-    const check = evaluateFaceQuality();
-    if (!check.valid) {
-      setErrorMessage(check.reason);
-      return;
+    setActiveCamera(angleKey);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err) {
+      setErrorMessage("Gagal mengakses kamera. Pastikan browser memiliki izin.");
+      setActiveCamera(null);
     }
+  };
 
-    setAnglesCaptured(prev => ({ ...prev, [angleKey]: true }));
+  const handleCapturePhoto = (angleKey) => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      // Flip for mirror effect
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      
+      const stream = video.srcObject;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      setCapturedPhotos(prev => ({ ...prev, [angleKey]: photoDataUrl }));
+      setActiveCamera(null);
+    }
   };
 
   const handleResetCapture = () => {
-    setAnglesCaptured({ front: false, right: false, left: false });
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    }
+    setCapturedPhotos({ front: null, right: null, left: null });
+    setActiveCamera(null);
     setErrorMessage(null);
     setSuccessMessage(null);
   };
 
   const handleSubmitEnrollment = () => {
-    if (!anglesCaptured.front || !anglesCaptured.right || !anglesCaptured.left) {
-      alert("Harap ambil foto 3 sudut terlebih dahulu (Depan, Kanan, Kiri).");
+    if (!capturedPhotos.front || !capturedPhotos.right || !capturedPhotos.left) {
+      alert("Harap ambil foto 3 sudut terlebih dahulu (Depan, Kanan, Kiri) dengan kamera.");
       return;
     }
 
     if (mode === 'self') {
-      store.submitFaceEnrollment(selectedStudentId, {
-        front: currentStudent.photoUrl,
-        right: currentStudent.photoUrl,
-        left: currentStudent.photoUrl
-      });
+      store.submitFaceEnrollment(selectedStudentId, capturedPhotos);
       setSuccessMessage("Pendaftaran Wajah Mandiri Berhasil! Status: Pending (Menunggu verifikasi admin).");
     } else {
-      store.updateEnrollmentStatus(selectedStudentId, 'approved');
+      // If admin, we can auto approve
+      store.submitFaceEnrollment(selectedStudentId, capturedPhotos).then(() => {
+        store.updateEnrollmentStatus(selectedStudentId, 'approved');
+      });
       setSuccessMessage("Wajah Siswa Berhasil Disetujui Langsung oleh Admin!");
     }
   };
@@ -75,9 +109,52 @@ export default function FaceEnrollment() {
     );
   }
 
+  const renderAngleBox = (angleKey, label) => {
+    const isCameraActive = activeCamera === angleKey;
+    const isCaptured = !!capturedPhotos[angleKey];
+    const displayImg = capturedPhotos[angleKey] || currentStudent.photoUrl || fallbackImg;
+
+    return (
+      <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center space-y-2">
+        <div className="relative aspect-square sm:aspect-auto sm:h-24 md:h-32 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center border-2 border-slate-300">
+          {isCameraActive ? (
+            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+          ) : (
+            <img src={displayImg} alt={label} className="w-full h-full object-cover" />
+          )}
+          
+          {isCaptured && !isCameraActive && (
+            <div className="absolute inset-0 bg-emerald-900/60 flex items-center justify-center text-white">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+          )}
+        </div>
+        <h4 className="text-[11px] font-bold text-slate-700">{label}</h4>
+        
+        {isCameraActive ? (
+          <button
+            onClick={() => handleCapturePhoto(angleKey)}
+            className="w-full py-1.5 text-[11px] font-bold rounded bg-blue-900 text-white flex items-center justify-center gap-1 hover:bg-blue-800"
+          >
+            <Camera className="w-3 h-3" /> AMBIL FOTO
+          </button>
+        ) : (
+          <button
+            onClick={() => handleOpenCamera(angleKey)}
+            className={`w-full py-1.5 text-[11px] font-bold rounded transition-colors ${
+              isCaptured ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+            }`}
+          >
+            {isCaptured ? 'FOTO ULANG' : 'BUKA KAMERA'}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      
+      <canvas ref={canvasRef} className="hidden" />
       <div className="clean-card p-6 space-y-5">
         
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -132,67 +209,9 @@ export default function FaceEnrollment() {
 
         {/* Grid 3 Sudut Foto */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center space-y-2">
-            <div className="relative aspect-square sm:aspect-auto sm:h-24 md:h-32 rounded-lg bg-slate-200 overflow-hidden flex items-center justify-center">
-              <img src={currentStudent.photoUrl} alt="Depan" className="w-full h-full object-cover" />
-              {anglesCaptured.front && (
-                <div className="absolute inset-0 bg-emerald-900/60 flex items-center justify-center text-white">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-              )}
-            </div>
-            <h4 className="text-[11px] font-bold text-slate-700">Depan</h4>
-            <button
-              onClick={() => handleCaptureAngle('front')}
-              className={`w-full py-1.5 text-[11px] font-bold rounded transition-colors ${
-                anglesCaptured.front ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-900 text-white hover:bg-blue-800'
-              }`}
-            >
-              {anglesCaptured.front ? 'Tersimpan' : 'Foto Depan'}
-            </button>
-          </div>
-
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center space-y-2">
-            <div className="relative aspect-square sm:aspect-auto sm:h-24 md:h-32 rounded-lg bg-slate-200 overflow-hidden flex items-center justify-center">
-              <img src={currentStudent.photoUrl} alt="Kanan" className="w-full h-full object-cover transform rotate-6" />
-              {anglesCaptured.right && (
-                <div className="absolute inset-0 bg-emerald-900/60 flex items-center justify-center text-white">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-              )}
-            </div>
-            <h4 className="text-[11px] font-bold text-slate-700">Serong Kanan</h4>
-            <button
-              onClick={() => handleCaptureAngle('right')}
-              className={`w-full py-1.5 text-[11px] font-bold rounded transition-colors ${
-                anglesCaptured.right ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-900 text-white hover:bg-blue-800'
-              }`}
-            >
-              {anglesCaptured.right ? 'Tersimpan' : 'Foto Kanan'}
-            </button>
-          </div>
-
-          <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center space-y-2">
-            <div className="relative aspect-square sm:aspect-auto sm:h-24 md:h-32 rounded-lg bg-slate-200 overflow-hidden flex items-center justify-center">
-              <img src={currentStudent.photoUrl} alt="Kiri" className="w-full h-full object-cover transform -rotate-6" />
-              {anglesCaptured.left && (
-                <div className="absolute inset-0 bg-emerald-900/60 flex items-center justify-center text-white">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-              )}
-            </div>
-            <h4 className="text-[11px] font-bold text-slate-700">Serong Kiri</h4>
-            <button
-              onClick={() => handleCaptureAngle('left')}
-              className={`w-full py-1.5 text-[11px] font-bold rounded transition-colors ${
-                anglesCaptured.left ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-900 text-white hover:bg-blue-800'
-              }`}
-            >
-              {anglesCaptured.left ? 'Tersimpan' : 'Foto Kiri'}
-            </button>
-          </div>
-
+          {renderAngleBox('front', 'Depan')}
+          {renderAngleBox('right', 'Serong Kanan')}
+          {renderAngleBox('left', 'Serong Kiri')}
         </div>
 
         {/* Error Alert */}
@@ -218,9 +237,9 @@ export default function FaceEnrollment() {
           </button>
           <button
             onClick={handleSubmitEnrollment}
-            disabled={!anglesCaptured.front || !anglesCaptured.right || !anglesCaptured.left}
+            disabled={!capturedPhotos.front || !capturedPhotos.right || !capturedPhotos.left}
             className={`flex-1 py-2 rounded-lg font-bold text-xs transition-colors flex items-center justify-center gap-1.5 ${
-              anglesCaptured.front && anglesCaptured.right && anglesCaptured.left
+              capturedPhotos.front && capturedPhotos.right && capturedPhotos.left
                 ? 'bg-blue-900 text-white hover:bg-blue-800 shadow-sm'
                 : 'bg-slate-200 text-slate-400 cursor-not-allowed'
             }`}

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { store } from '../firebase/services';
-import { getRandomLivenessChallenge, checkDeviceSecurity } from '../utils/faceAndGeoUtils';
 import { Smartphone, MapPin, ShieldCheck, CheckCircle2, RefreshCw, Camera } from 'lucide-react';
 import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -36,14 +35,11 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const [gpsError, setGpsError] = useState(null);
   const [realDistance, setRealDistance] = useState(0); 
 
-  const [challenge, setChallenge] = useState(getRandomLivenessChallenge());
-  
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
-  const [isScanning, setIsScanning] = useState(false);
 
   const [livenessCompleted, setLivenessCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,7 +123,6 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const isInsideGeofence = realDistance <= allowedRadius;
 
   const handleResetChallenge = () => {
-    setChallenge(getRandomLivenessChallenge());
     setLivenessCompleted(false);
     setSuccessResult(null);
     setCapturedPhoto(null);
@@ -149,33 +144,28 @@ export default function StudentMobileApp({ loggedInStudent }) {
     }
   };
 
-  const handleStartScan = () => {
+  const handleCapturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
-    setIsScanning(true);
     
-    // Simulate AI scanning for 2.5 seconds
-    setTimeout(() => {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      if (!video || !canvas) return;
-      
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-      
-      const stream = video.srcObject;
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      setIsCameraOpen(false);
-      setIsScanning(false);
-      setLivenessCompleted(true);
-      setCapturedPhoto(photoDataUrl);
-    }, 2500);
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    
+    const stream = video.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    setIsCameraOpen(false);
+    setLivenessCompleted(true);
+    setCapturedPhoto(photoDataUrl);
   };
 
   const handleExecuteCheckIn = () => {
@@ -199,7 +189,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
         method: 'mobile_liveness',
         distanceMeters: realDistance,
         livenessPassed: true,
-        livenessChallenge: challenge.label,
+        livenessChallenge: 'Direct Camera Capture',
         photoProofUrl: capturedPhoto || selectedStudent.photoUrl,
         status: 'Hadir'
       };
@@ -317,73 +307,47 @@ export default function StudentMobileApp({ loggedInStudent }) {
           </div>
         </div>
 
-        {/* Liveness Challenge */}
+        {/* Wajah / Foto Kehadiran */}
         <div className="p-4 rounded-lg border border-slate-200 space-y-3 bg-white shadow-xs">
           <div className="flex justify-between items-center">
-            <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">Anti-Spoofing (Liveness)</h4>
+            <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wide">Bukti Kehadiran</h4>
             <button onClick={handleResetChallenge} className="text-slate-400 hover:text-slate-700 text-[10px] flex items-center gap-1 font-bold bg-slate-100 px-2 py-1 rounded">
-              <RefreshCw className="w-3 h-3" /> ACAK
+              <RefreshCw className="w-3 h-3" /> ULANG FOTO
             </button>
           </div>
 
           <div className="text-center p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
-            <div className="text-3xl drop-shadow-sm">{challenge.icon}</div>
-            <p className="text-xs font-bold text-slate-800">{challenge.label}</p>
-
             {isCameraOpen ? (
               <div className="space-y-3">
                 <div className="relative w-full aspect-square bg-slate-900 rounded-lg overflow-hidden border-2 border-slate-300 shadow-inner">
                   <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
-                  
-                  {/* Panduan Arah Wajah */}
-                  <div className="absolute top-4 left-0 right-0 z-10 flex justify-center">
-                    <div className="bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-full font-bold text-xs border border-white/20 animate-pulse flex items-center gap-2">
-                      <span>{challenge.icon}</span> 
-                      <span>MOHON {challenge.label.toUpperCase()}</span>
-                    </div>
-                  </div>
-
-                  {/* Efek Scanning */}
-                  {isScanning && (
-                    <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
-                      <div className="w-full h-1 bg-emerald-400 shadow-[0_0_15px_5px_rgba(52,211,153,0.5)] animate-scan"></div>
-                      <div className="absolute inset-0 bg-blue-500/10 backdrop-blur-[1px]"></div>
-                      <div className="absolute bottom-4 left-0 right-0 text-center">
-                        <span className="bg-emerald-600/80 text-white text-[10px] font-bold px-3 py-1 rounded-full animate-pulse">
-                          Menganalisis Pola Wajah...
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="absolute inset-0 border-4 border-blue-500/30 rounded-lg pointer-events-none"></div>
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
                 <button
-                  onClick={handleStartScan}
-                  disabled={isScanning}
-                  className={`w-full py-3 text-white text-xs font-bold rounded-lg shadow-md flex items-center justify-center gap-2 transition-all ${
-                    isScanning ? 'bg-slate-500 cursor-wait' : 'bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 active:scale-[0.98]'
-                  }`}
+                  onClick={handleCapturePhoto}
+                  className="w-full py-3 text-white text-xs font-bold rounded-lg shadow-md flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 active:scale-[0.98]"
                 >
-                  {isScanning ? (
-                    <><RefreshCw className="w-4 h-4 animate-spin" /> SEDANG MEMINDAI...</>
-                  ) : (
-                    <><Camera className="w-4 h-4" /> SAYA SUDAH {challenge.label.toUpperCase()} -> PINDAI</>
-                  )}
+                  <Camera className="w-4 h-4" /> AMBIL FOTO WAJAH
                 </button>
               </div>
             ) : livenessCompleted ? (
-              <div className="clean-badge-green w-full py-2 rounded-lg text-xs font-bold inline-flex justify-center items-center gap-1.5 shadow-sm border border-emerald-200">
-                <CheckCircle2 className="w-4 h-4" /> WAJAH TERVERIFIKASI
+              <div className="space-y-3">
+                <img src={capturedPhoto} alt="Bukti Hadir" className="w-full aspect-square object-cover rounded-lg border-2 border-emerald-300 shadow-sm" />
+                <div className="clean-badge-green w-full py-2 rounded-lg text-xs font-bold inline-flex justify-center items-center gap-1.5 shadow-sm border border-emerald-200">
+                  <CheckCircle2 className="w-4 h-4" /> FOTO TERSIMPAN
+                </div>
               </div>
             ) : (
-              <button
-                onClick={handleOpenFaceVerification}
-                className="w-full py-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-[0.98]"
-              >
-                BUKA KAMERA VERIFIKASI
-              </button>
+              <div className="py-2 space-y-3">
+                <Camera className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-xs font-semibold text-slate-600 mb-2">Ambil foto *selfie* di lokasi sekolah sebagai bukti kehadiran Anda.</p>
+                <button
+                  onClick={handleOpenFaceVerification}
+                  className="w-full py-2.5 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-[0.98]"
+                >
+                  BUKA KAMERA SEKARANG
+                </button>
+              </div>
             )}
 
             {cameraError && (
