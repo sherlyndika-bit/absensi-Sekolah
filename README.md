@@ -1,9 +1,9 @@
 # 🏫 Sistem Absensi Siswa Modern (Face Recognition & Geofencing)
 
-Aplikasi platform absensi siswa modern berbasis **Pengenalan Wajah (Face Recognition)**, **Deteksi Kehidupan (Liveness Detection)**, **Geofencing (Pelacakan Lokasi Radius)**, dan **Google Firebase Ecosystem**.
+Aplikasi platform absensi siswa modern berbasis **Pengenalan Wajah (Face Recognition)**, **Deteksi Kehidupan (Liveness Detection)**, **Geofencing (Pelacakan Lokasi Radius)**, dan **Supabase Ecosystem (PostgreSQL Database - 100% Gratis Tanpa Kartu Kredit)**.
 
 ![License](https://img.shields.io/badge/License-MIT-emerald)
-![Firebase](https://img.shields.io/badge/Database-Google%20Firebase-FFCA28)
+![Supabase](https://img.shields.io/badge/Database-Supabase%20PostgreSQL-3ECF8E)
 ![React](https://img.shields.io/badge/Frontend-React.js%20%2B%20TailwindCSS-61DAFB)
 
 ---
@@ -36,28 +36,23 @@ Aplikasi platform absensi siswa modern berbasis **Pengenalan Wajah (Face Recogni
 ## 🛠️ Pilihan Tech Stack & Arsitektur
 
 * **Frontend**: React.js, Vite, TailwindCSS, Lucide Icons, `face-api.js` (TensorFlow.js)
-* **Database & Cloud**: Google Firebase (Cloud Firestore, Firebase Storage, Firebase Auth, Cloud Functions)
+* **Database & Cloud**: Supabase PostgreSQL (100% Free Tier - No Credit Card Required)
 * **Algoritma Geofencing**: Haversine Formula ($d = 2r \arcsin \dots$)
-* **Message Queue & Push**: Firebase Cloud Messaging (FCM) & WhatsApp Webhook Gateway (Fonnte/Wablas)
+* **Message Queue & Push**: WhatsApp Webhook Gateway (Fonnte/Wablas)
 
 ---
 
-## 🔥 Cara Setting Google Firebase
+## 🔥 Cara Setting Supabase (100% Gratis Tanpa Kartu Kredit)
 
-1. Buat proyek baru di [Firebase Console](https://console.firebase.google.com/).
-2. Aktifkan **Cloud Firestore Database** (Pilih Region `asia-southeast1`).
-3. Aktifkan **Firebase Storage** untuk penyimpanan foto.
-4. Salin objek `firebaseConfig` ke dalam file `src/firebase/config.js` atau file `.env`:
+1. Buka [https://supabase.com](https://supabase.com) lalu buat akun gratis (login via GitHub / Google).
+2. Klik **New Project**, beri nama: `absensi-sekolah`.
+3. Buka **SQL Editor** pada menu Supabase Dashboard.
+4. Salin isi file `supabase_schema.sql` dan klik **RUN**.
+5. Buka **Project Settings > API**, salin `Project URL` dan `anon public key` ke `.env` atau `src/supabase/config.js`:
 
-```javascript
-const firebaseConfig = {
-  apiKey: "AIzaSy...",
-  authDomain: "absensi-sekolah.firebaseapp.com",
-  projectId: "absensi-sekolah",
-  storageBucket: "absensi-sekolah.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef..."
-};
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ---
@@ -81,4 +76,4 @@ Aplikasi dapat diakses melalui browser pada `http://localhost:3000`.
 ---
 
 ## 📄 Lisensi
-Hak Cipta © 2026 - Sistem Absensi Siswa Modern.
+Hak Cipta © 2026 - Sistem Absensi Siswa Modern (Supabase Ecosystem).

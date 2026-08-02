@@ -31,7 +31,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
               <h1 className="font-extrabold text-lg text-white tracking-tight">E-ABSENSI SISWA</h1>
               <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Firebase Active
+                Supabase / Cloud DB Active
               </span>
             </div>
             <p className="text-xs text-slate-400">Face Recognition & Geofencing Anti-Spoofing</p>
