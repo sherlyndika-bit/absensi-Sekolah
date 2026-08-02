@@ -289,9 +289,29 @@ class SupabaseDataStore {
   }
 
   async deleteStudent(studentId) {
+    // Simpan status lama untuk rollback jika error
+    const previousStudents = [...this.students];
+    
+    // Update UI (optimistic)
     this.students = this.students.filter(s => s.id !== studentId);
     this.notify();
-    await supabase.from('users').delete().eq('id', studentId);
+
+    try {
+      // Hapus data dependen terlebih dahulu (menghindari Foreign Key Constraint Error di PostgreSQL)
+      await supabase.from('attendances').delete().eq('student_id', studentId);
+      await supabase.from('sick_leave_requests').delete().eq('student_id', studentId);
+      
+      // Hapus user
+      const { error } = await supabase.from('users').delete().eq('id', studentId);
+      
+      if (error) throw error;
+    } catch (err) {
+      console.error("Gagal menghapus dari database:", err);
+      alert("Gagal menghapus data siswa. Mungkin karena masalah jaringan atau hak akses.");
+      // Rollback UI
+      this.students = previousStudents;
+      this.notify();
+    }
   }
 }
 
