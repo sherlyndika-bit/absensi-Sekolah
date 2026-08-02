@@ -30,7 +30,7 @@ export default function Layout({ activeTab, setActiveTab, user, onLogout, childr
           </div>
           <div>
             <h1 className="font-extrabold text-sm text-slate-900 leading-tight">Absensi Modern</h1>
-            <p className="text-[10px] text-slate-500">Supabase Connected</p>
+            <p className="text-[10px] text-slate-500">Sistem Presensi Terpadu</p>
           </div>
         </div>
 
@@ -96,7 +96,7 @@ export default function Layout({ activeTab, setActiveTab, user, onLogout, childr
             </div>
             <div>
               <h1 className="font-bold text-xs text-slate-900">Absensi Modern</h1>
-              <p className="text-[9px] text-emerald-600 font-medium">Supabase Online</p>
+              <p className="text-[9px] text-emerald-600 font-medium">Sistem Presensi</p>
             </div>
           </div>
           <button onClick={onLogout} className="p-1.5 text-rose-600 bg-rose-50 rounded-md border border-rose-100 hover:bg-rose-100 transition-colors">
@@ -110,12 +110,6 @@ export default function Layout({ activeTab, setActiveTab, user, onLogout, childr
           
           {/* Footer inside content area so it scrolls with it */}
           <footer className="mt-12 pt-6 border-t border-slate-200 text-[10px] text-slate-400 text-center space-y-2">
-            <div className="flex justify-center gap-4">
-              <span className="flex items-center gap-1"><Database className="w-3 h-3" /> Supabase</span>
-              <a href="https://github.com/sherlyndika-bit/absensi-Sekolah.git" target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-blue-900 transition-colors">
-                <Github className="w-3 h-3" /> GitHub
-              </a>
-            </div>
             <p>SMA Negeri 1 Jakarta © {new Date().getFullYear()}</p>
           </footer>
         </main>
