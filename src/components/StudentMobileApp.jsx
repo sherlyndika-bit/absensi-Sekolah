@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { store } from '../firebase/services';
 import { getRandomLivenessChallenge, checkDeviceSecurity } from '../utils/faceAndGeoUtils';
-import { Smartphone, MapPin, ShieldCheck, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Smartphone, MapPin, ShieldCheck, CheckCircle2, RefreshCw, Camera } from 'lucide-react';
 import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -38,6 +38,12 @@ export default function StudentMobileApp({ loggedInStudent }) {
 
   const [challenge, setChallenge] = useState(getRandomLivenessChallenge());
   
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const [capturedPhoto, setCapturedPhoto] = useState(null);
+
   const [livenessCompleted, setLivenessCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successResult, setSuccessResult] = useState(null);
@@ -123,9 +129,47 @@ export default function StudentMobileApp({ loggedInStudent }) {
     setChallenge(getRandomLivenessChallenge());
     setLivenessCompleted(false);
     setSuccessResult(null);
+    setCapturedPhoto(null);
   };
 
-  const handleSimulateLivenessPass = () => setLivenessCompleted(true);
+  const handleOpenFaceVerification = async () => {
+    try {
+      setCameraError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      setIsCameraOpen(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err) {
+      setCameraError("Kamera diblokir. Harap izinkan akses kamera browser Anda.");
+      console.error(err);
+    }
+  };
+
+  const handleCapturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      // Flip horisontal untuk efek cermin
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      
+      const stream = video.srcObject;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      setIsCameraOpen(false);
+      setLivenessCompleted(true);
+      setCapturedPhoto(photoDataUrl);
+    }
+  };
 
   const handleExecuteCheckIn = () => {
     if (!isInsideGeofence) {
@@ -149,7 +193,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
         distanceMeters: realDistance,
         livenessPassed: true,
         livenessChallenge: challenge.label,
-        photoProofUrl: selectedStudent.photoUrl,
+        photoProofUrl: capturedPhoto || selectedStudent.photoUrl,
         status: 'Hadir'
       };
 
@@ -279,17 +323,35 @@ export default function StudentMobileApp({ loggedInStudent }) {
             <div className="text-3xl drop-shadow-sm">{challenge.icon}</div>
             <p className="text-xs font-bold text-slate-800">{challenge.label}</p>
 
-            {livenessCompleted ? (
+            {isCameraOpen ? (
+              <div className="space-y-3">
+                <div className="relative w-full aspect-square bg-slate-900 rounded-lg overflow-hidden border-2 border-slate-300 shadow-inner">
+                  <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+                  <div className="absolute inset-0 border-4 border-blue-500/30 rounded-lg pointer-events-none"></div>
+                </div>
+                <canvas ref={canvasRef} className="hidden" />
+                <button
+                  onClick={handleCapturePhoto}
+                  className="w-full py-2.5 bg-gradient-to-r from-blue-700 to-blue-900 text-white text-xs font-bold rounded-lg shadow-md hover:from-blue-800 hover:to-blue-950 flex items-center justify-center gap-2 active:scale-[0.98]"
+                >
+                  <Camera className="w-4 h-4" /> AMBIL FOTO & VERIFIKASI
+                </button>
+              </div>
+            ) : livenessCompleted ? (
               <div className="clean-badge-green w-full py-2 rounded-lg text-xs font-bold inline-flex justify-center items-center gap-1.5 shadow-sm border border-emerald-200">
                 <CheckCircle2 className="w-4 h-4" /> WAJAH TERVERIFIKASI
               </div>
             ) : (
               <button
-                onClick={handleSimulateLivenessPass}
+                onClick={handleOpenFaceVerification}
                 className="w-full py-2 bg-gradient-to-r from-blue-800 to-blue-900 hover:from-blue-900 hover:to-blue-950 text-white text-xs font-bold rounded-lg transition-all shadow-md active:scale-[0.98]"
               >
-                MULAI VERIFIKASI WAJAH
+                BUKA KAMERA VERIFIKASI
               </button>
+            )}
+
+            {cameraError && (
+              <p className="text-[10px] text-rose-600 font-bold bg-rose-50 p-2 rounded border border-rose-200">{cameraError}</p>
             )}
           </div>
         </div>
