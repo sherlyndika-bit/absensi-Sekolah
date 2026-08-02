@@ -21,6 +21,9 @@ export default function SickLeaveModule({ loggedInStudent }) {
   }, []);
 
   const handleOpenCamera = async () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
       setIsCameraOpen(true);

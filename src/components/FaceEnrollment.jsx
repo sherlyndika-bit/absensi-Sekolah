@@ -34,6 +34,9 @@ export default function FaceEnrollment() {
   const handleOpenCamera = async (angleKey) => {
     setErrorMessage(null);
     setSuccessMessage(null);
+    if (videoRef.current && videoRef.current.srcObject) {
+      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    }
     setActiveCamera(angleKey);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });

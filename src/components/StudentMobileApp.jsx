@@ -28,7 +28,13 @@ function MapUpdater({ center }) {
 
 export default function StudentMobileApp({ loggedInStudent }) {
   const [data, setData] = useState(store.getState());
-  const selectedStudent = loggedInStudent;
+  useEffect(() => {
+    return store.subscribe((newState) => {
+      setData(newState);
+    });
+  }, []);
+
+  const activeStudent = data.students.find(s => s.id === loggedInStudent.id) || loggedInStudent;
   
   const [studentLat, setStudentLat] = useState(null);
   const [studentLng, setStudentLng] = useState(null);
@@ -44,10 +50,6 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const [livenessCompleted, setLivenessCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successResult, setSuccessResult] = useState(null);
-
-  useEffect(() => {
-    return store.subscribe((newState) => setData(newState));
-  }, []);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -101,26 +103,22 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const centerLat = data.geofence.centerLatitude || -6.175392;
   const centerLng = data.geofence.centerLongitude || 106.827153;
 
-  if (studentLat === null || studentLng === null) {
-    return (
-      <div className="flex flex-col justify-center items-center h-64 text-slate-500 text-sm p-6 text-center space-y-2 bg-white m-4 rounded-xl shadow-xs border border-slate-200">
-        {gpsError ? (
-          <>
-            <MapPin className="w-8 h-8 text-rose-500 mb-2" />
-            <p className="text-rose-600 font-bold">{gpsError}</p>
-          </>
-        ) : (
-          <>
-            <RefreshCw className="w-8 h-8 animate-spin text-blue-900" /> 
-            <p className="font-bold text-slate-700">Mencari Sinyal GPS...</p>
-            <p className="text-[10px] text-slate-500">Harap izinkan akses lokasi (Location) pada browser/perangkat Anda.</p>
-          </>
-        )}
-      </div>
-    );
-  }
+  const isInsideGeofence = realDistance !== null && realDistance <= allowedRadius;
 
-  const isInsideGeofence = realDistance <= allowedRadius;
+  let gpsBadgeText = "Mencari GPS...";
+  let gpsBadgeClass = "bg-slate-100 text-slate-500 border-slate-200";
+  if (gpsError) {
+    gpsBadgeText = "GPS Gagal";
+    gpsBadgeClass = "bg-rose-50 text-rose-600 border-rose-200";
+  } else if (realDistance !== null) {
+    if (isInsideGeofence) {
+      gpsBadgeText = `Jarak: ${realDistance}m (Aman)`;
+      gpsBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200";
+    } else {
+      gpsBadgeText = `Jarak: ${realDistance}m (Luar Radius)`;
+      gpsBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+    }
+  }
 
   const handleResetChallenge = () => {
     setLivenessCompleted(false);
@@ -131,6 +129,9 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const handleOpenFaceVerification = async () => {
     try {
       setCameraError(null);
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       setIsCameraOpen(true);
       setTimeout(() => {
@@ -182,15 +183,15 @@ export default function StudentMobileApp({ loggedInStudent }) {
 
     setTimeout(() => {
       const record = {
-        studentId: selectedStudent.id,
-        studentName: selectedStudent.name,
-        classId: selectedStudent.classId,
-        parentPhone: selectedStudent.parentPhone,
+        studentId: activeStudent.id,
+        studentName: activeStudent.name,
+        classId: activeStudent.classId,
+        parentPhone: activeStudent.parentPhone,
         method: 'mobile_liveness',
         distanceMeters: realDistance,
         livenessPassed: true,
         livenessChallenge: 'Direct Camera Capture',
-        photoProofUrl: capturedPhoto || selectedStudent.photoUrl,
+        photoProofUrl: capturedPhoto || activeStudent.photoUrl,
         status: 'Hadir'
       };
 
@@ -217,17 +218,17 @@ export default function StudentMobileApp({ loggedInStudent }) {
               <p className="text-[10px] text-slate-500">Super Strict Mode</p>
             </div>
           </div>
-          <span className="text-[10px] text-slate-500 font-bold px-2 py-0.5 bg-slate-100 rounded border border-slate-200 shadow-xs uppercase tracking-wider">
-            NTP Sync
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shadow-xs uppercase tracking-wider ${gpsBadgeClass}`}>
+            {gpsBadgeText}
           </span>
         </div>
 
         {/* Info Akun Siswa (Locked) */}
         <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-center gap-3">
-          <img src={selectedStudent.photoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png"} alt={selectedStudent.name} className="w-10 h-10 rounded-full object-cover border border-slate-300 shadow-sm" />
+          <img src={activeStudent.photoUrl || "https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png"} alt={activeStudent.name} className="w-10 h-10 rounded-full object-cover border border-slate-300 shadow-sm" />
           <div>
-            <h4 className="text-sm font-extrabold text-slate-900">{selectedStudent.name}</h4>
-            <p className="text-[11px] text-slate-500 font-medium">NISN: {selectedStudent.nisn} • Kelas: {selectedStudent.classId}</p>
+            <h4 className="text-sm font-extrabold text-slate-900">{activeStudent.name}</h4>
+            <p className="text-[11px] text-slate-500 font-medium">NISN: {activeStudent.nisn} • Kelas: {activeStudent.classId}</p>
           </div>
         </div>
 
@@ -276,12 +277,14 @@ export default function StudentMobileApp({ loggedInStudent }) {
               </Marker>
 
               {/* Student Position Marker */}
-              <Marker position={[studentLat, studentLng]} icon={getStudentIcon(isInsideGeofence)}>
-                <Popup className="text-xs">
-                  <div className="font-bold text-slate-800">Posisi Anda Asli</div>
-                  <div className="text-slate-500">{realDistance}m dari gerbang</div>
-                </Popup>
-              </Marker>
+              {studentLat !== null && studentLng !== null && (
+                <Marker position={[studentLat, studentLng]} icon={getStudentIcon(isInsideGeofence)}>
+                  <Popup className="text-xs">
+                    <div className="font-bold text-slate-800">Posisi Anda Asli</div>
+                    <div className="text-slate-500">{realDistance}m dari gerbang</div>
+                  </Popup>
+                </Marker>
+              )}
             </MapContainer>
           </div>
 
