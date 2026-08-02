@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { store } from '../firebase/services';
 import { Users, CheckCircle2, Clock, AlertCircle, FileText, MapPin, Send, Check, X, Eye, Crosshair } from 'lucide-react';
-import StudentManagement from './StudentManagement';
 import { MapContainer, TileLayer, Circle, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
@@ -347,11 +346,6 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
-
-      {/* Manajemen Data Siswa (CRUD) */}
-      <div className="pt-6 mt-6 border-t border-slate-200">
-        <StudentManagement data={data} />
-      </div>
 
     </div>
   );

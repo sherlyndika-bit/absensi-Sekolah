@@ -1,8 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { store } from '../firebase/services';
 import { Users, Plus, Trash2, Edit2, Check, X, ShieldAlert } from 'lucide-react';
 
-export default function StudentManagement({ data }) {
+export default function StudentManagement() {
+  const [data, setData] = useState(store.getState());
+
+  useEffect(() => {
+    return store.subscribe((newState) => setData(newState));
+  }, []);
+
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState(null);
   

@@ -5,6 +5,7 @@ import SmartKiosk from './components/SmartKiosk';
 import StudentMobileApp from './components/StudentMobileApp';
 import FaceEnrollment from './components/FaceEnrollment';
 import SickLeaveModule from './components/SickLeaveModule';
+import StudentManagement from './components/StudentManagement';
 import Login from './components/Login';
 import { School, Github, Database } from 'lucide-react';
 
@@ -47,6 +48,7 @@ export default function App() {
       {user.role === 'admin' && (
         <div className="fade-in">
           {activeTab === 'admin' && <AdminDashboard />}
+          {activeTab === 'students' && <StudentManagement />}
           {activeTab === 'kiosk' && <SmartKiosk />}
           {activeTab === 'enrollment' && <FaceEnrollment />}
         </div>

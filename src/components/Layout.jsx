@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { School, Smartphone, Tablet, LayoutDashboard, UserCheck, FileText, LogOut, Clock, Database, Github } from 'lucide-react';
+import { School, Smartphone, Tablet, LayoutDashboard, UserCheck, FileText, LogOut, Clock, Database, Github, Users } from 'lucide-react';
 
 export default function Layout({ activeTab, setActiveTab, user, onLogout, children }) {
   const [serverTime, setServerTime] = useState(new Date());
@@ -11,6 +11,7 @@ export default function Layout({ activeTab, setActiveTab, user, onLogout, childr
 
   const navItems = [
     { id: 'admin', label: 'Dashboard Admin', icon: LayoutDashboard, roles: ['admin'] },
+    { id: 'students', label: 'Data Siswa', icon: Users, roles: ['admin'] },
     { id: 'mobile', label: 'Absen Siswa', icon: Smartphone, roles: ['student'] },
     { id: 'kiosk', label: 'Smart Kiosk', icon: Tablet, roles: ['admin'] },
     { id: 'enrollment', label: 'Daftar Wajah', icon: UserCheck, roles: ['admin'] },
