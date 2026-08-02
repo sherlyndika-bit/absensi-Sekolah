@@ -359,9 +359,9 @@ export default function StudentMobileApp({ loggedInStudent }) {
         {/* Tombol Check-in */}
         <button
           onClick={handleExecuteCheckIn}
-          disabled={!isInsideGeofence || !livenessCompleted || isSubmitting}
+          disabled={!livenessCompleted || isSubmitting}
           className={`w-full py-3.5 rounded-lg font-extrabold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${
-            isInsideGeofence && livenessCompleted && !isSubmitting
+            livenessCompleted && !isSubmitting
               ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-[0_4px_14px_0_rgba(16,185,129,0.39)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.23)] hover:from-emerald-600 hover:to-emerald-700 active:scale-[0.98]'
               : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
           }`}
