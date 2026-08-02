@@ -10,6 +10,12 @@ const schoolIcon = new L.DivIcon({
   iconAnchor: [14, 14]
 });
 
+const studentLocIcon = new L.DivIcon({
+  className: 'bg-transparent',
+  html: `<div style="background-color: #ef4444; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>`,
+  iconAnchor: [12, 12]
+});
+
 function MapUpdater({ center }) {
   const map = useMap();
   React.useEffect(() => {
@@ -21,6 +27,7 @@ function MapUpdater({ center }) {
 export default function AdminDashboard() {
   const [data, setData] = useState(store.getState());
   const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
   useEffect(() => {
     return store.subscribe((newState) => setData(newState));
@@ -171,13 +178,23 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
-                          att.distanceMeters <= data.geofence.allowedRadiusMeters 
-                            ? 'clean-badge-green' 
-                            : 'clean-badge-red'
-                        }`}>
-                          {att.distanceMeters}m ({att.distanceMeters <= data.geofence.allowedRadiusMeters ? 'Valid' : 'Luar Area'})
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
+                            att.distanceMeters <= data.geofence.allowedRadiusMeters 
+                              ? 'clean-badge-green' 
+                              : 'clean-badge-red'
+                          }`}>
+                            {att.distanceMeters}m ({att.distanceMeters <= data.geofence.allowedRadiusMeters ? 'Valid' : 'Luar Area'})
+                          </span>
+                          {att.gpsCoordinates && (
+                            <button 
+                              onClick={() => setSelectedLocation(att)} 
+                              className="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 inline-flex items-center gap-1 transition-colors"
+                            >
+                              <MapPin className="w-3 h-3" /> Peta
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3">
                         <span className="clean-badge-green px-2 py-0.5 rounded text-[11px] inline-flex items-center gap-1">
@@ -342,6 +359,59 @@ export default function AdminDashboard() {
             <img src={selectedPhoto} alt="Bukti Absensi" className="w-full rounded-lg max-h-80 object-cover border border-slate-200" />
             <button onClick={() => setSelectedPhoto(null)} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg">
               Tutup Preview
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Peta Lokasi Asli */}
+      {selectedLocation && selectedLocation.gpsCoordinates && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setSelectedLocation(null) }}>
+          <div className="bg-white p-4 rounded-xl border border-slate-200 max-w-2xl w-full space-y-4 shadow-xl">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <div>
+                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-blue-700" /> Lokasi Asli Check-In
+                </h3>
+                <p className="text-[11px] text-slate-500">{selectedLocation.studentName} • Jarak tercatat: {selectedLocation.distanceMeters}m</p>
+              </div>
+              <button onClick={() => setSelectedLocation(null)} className="text-slate-400 hover:text-slate-700">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="rounded-lg overflow-hidden border border-slate-300 h-64 relative z-0">
+              <MapContainer 
+                center={[selectedLocation.gpsCoordinates.lat, selectedLocation.gpsCoordinates.lng]} 
+                zoom={17} 
+                scrollWheelZoom={true}
+                className="h-full w-full"
+              >
+                <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                
+                {/* Gerbang Sekolah */}
+                <Circle 
+                  center={[data.geofence.centerLatitude, data.geofence.centerLongitude]} 
+                  radius={data.geofence.allowedRadiusMeters} 
+                  pathOptions={{ color: '#1e3a8a', fillColor: '#3b82f6', fillOpacity: 0.15 }} 
+                />
+                <Marker position={[data.geofence.centerLatitude, data.geofence.centerLongitude]} icon={schoolIcon}>
+                  <Popup>Gerbang Sekolah</Popup>
+                </Marker>
+
+                {/* Titik Siswa Asli */}
+                <Marker position={[selectedLocation.gpsCoordinates.lat, selectedLocation.gpsCoordinates.lng]} icon={studentLocIcon}>
+                  <Popup>
+                    <div className="font-bold">Titik Absen Siswa</div>
+                    <div>Lat: {selectedLocation.gpsCoordinates.lat.toFixed(6)}</div>
+                    <div>Lng: {selectedLocation.gpsCoordinates.lng.toFixed(6)}</div>
+                  </Popup>
+                </Marker>
+              </MapContainer>
+            </div>
+            
+            <button onClick={() => setSelectedLocation(null)} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg">
+              Tutup Peta
             </button>
           </div>
         </div>

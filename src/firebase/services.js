@@ -66,21 +66,28 @@ class SupabaseDataStore {
       }
 
       if (attRes.data) {
-        this.attendances = attRes.data.map(a => ({
-          id: a.id,
-          studentId: a.student_id,
-          studentName: a.student_name,
-          classId: a.class_id,
-          timestamp: a.timestamp,
-          timeStr: a.time_str,
-          dateString: a.date_string,
-          status: a.status,
-          method: a.method,
-          distanceMeters: a.distance_meters,
-          livenessPassed: a.liveness_passed,
-          photoProofUrl: a.photo_proof_url,
-          waNotifSent: a.wa_notif_sent
-        }));
+        this.attendances = attRes.data.map(a => {
+          let gpsCoordinates = null;
+          if (a.liveness_challenge) {
+            try { gpsCoordinates = JSON.parse(a.liveness_challenge); } catch(e) {}
+          }
+          return {
+            id: a.id,
+            studentId: a.student_id,
+            studentName: a.student_name,
+            classId: a.class_id,
+            timestamp: a.timestamp,
+            timeStr: a.time_str,
+            dateString: a.date_string,
+            status: a.status,
+            method: a.method,
+            distanceMeters: a.distance_meters,
+            gpsCoordinates: gpsCoordinates,
+            livenessPassed: a.liveness_passed,
+            photoProofUrl: a.photo_proof_url,
+            waNotifSent: a.wa_notif_sent
+          };
+        });
         changed = true;
       }
 
@@ -139,21 +146,28 @@ class SupabaseDataStore {
       // Fetch Attendances
       const { data: attData } = await supabase.from('attendances').select('*').order('created_at', { ascending: false }).limit(50);
       if (attData) {
-        this.attendances = attData.map(a => ({
-          id: a.id,
-          studentId: a.student_id,
-          studentName: a.student_name,
-          classId: a.class_id,
-          timestamp: a.timestamp,
-          timeStr: a.time_str,
-          dateString: a.date_string,
-          status: a.status,
-          method: a.method,
-          distanceMeters: a.distance_meters,
-          livenessPassed: a.liveness_passed,
-          photoProofUrl: a.photo_proof_url,
-          waNotifSent: a.wa_notif_sent
-        }));
+        this.attendances = attData.map(a => {
+          let gpsCoordinates = null;
+          if (a.liveness_challenge) {
+            try { gpsCoordinates = JSON.parse(a.liveness_challenge); } catch(e) {}
+          }
+          return {
+            id: a.id,
+            studentId: a.student_id,
+            studentName: a.student_name,
+            classId: a.class_id,
+            timestamp: a.timestamp,
+            timeStr: a.time_str,
+            dateString: a.date_string,
+            status: a.status,
+            method: a.method,
+            distanceMeters: a.distance_meters,
+            gpsCoordinates: gpsCoordinates,
+            livenessPassed: a.liveness_passed,
+            photoProofUrl: a.photo_proof_url,
+            waNotifSent: a.wa_notif_sent
+          };
+        });
       }
 
       // Fetch Leave Requests
@@ -216,6 +230,7 @@ class SupabaseDataStore {
       status: record.status || 'Hadir',
       method: record.method || 'mobile_liveness',
       distance_meters: record.distanceMeters,
+      liveness_challenge: record.gpsCoordinates ? JSON.stringify(record.gpsCoordinates) : null,
       liveness_passed: record.livenessPassed,
       photo_proof_url: record.photoProofUrl,
       wa_notif_sent: true
@@ -233,6 +248,7 @@ class SupabaseDataStore {
       status: newRecord.status,
       method: newRecord.method,
       distanceMeters: newRecord.distance_meters,
+      gpsCoordinates: record.gpsCoordinates,
       livenessPassed: newRecord.liveness_passed,
       photoProofUrl: newRecord.photo_proof_url,
       waNotifSent: newRecord.wa_notif_sent
