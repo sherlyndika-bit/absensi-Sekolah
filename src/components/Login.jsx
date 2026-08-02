@@ -37,7 +37,7 @@ export default function Login({ onLogin }) {
 
     setTimeout(() => {
       const data = store.getState();
-      const student = data.students.find(s => s.nisn === nisn);
+      const student = data.students.find(s => String(s.nisn) === String(nisn));
       
       if (student) {
         onLogin({ role: 'student', ...student });
