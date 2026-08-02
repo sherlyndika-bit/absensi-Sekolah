@@ -31,7 +31,11 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const [data, setData] = useState(store.getState());
   const selectedStudent = loggedInStudent;
   
-  const [simulatedDistance, setSimulatedDistance] = useState(15); 
+  const [studentLat, setStudentLat] = useState(null);
+  const [studentLng, setStudentLng] = useState(null);
+  const [gpsError, setGpsError] = useState(null);
+  const [realDistance, setRealDistance] = useState(0); 
+
   const [challenge, setChallenge] = useState(getRandomLivenessChallenge());
   
   const [livenessCompleted, setLivenessCompleted] = useState(false);
@@ -42,6 +46,46 @@ export default function StudentMobileApp({ loggedInStudent }) {
     return store.subscribe((newState) => setData(newState));
   }, []);
 
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      setGpsError("Browser Anda tidak mendukung GPS.");
+      return;
+    }
+    
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+      const R = 6371e3; 
+      const p1 = lat1 * Math.PI/180; 
+      const p2 = lat2 * Math.PI/180;
+      const dp = (lat2-lat1) * Math.PI/180;
+      const dl = (lon2-lon1) * Math.PI/180;
+      const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return Math.round(R * c);
+    };
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setStudentLat(lat);
+        setStudentLng(lng);
+        
+        if (data.initialized && data.geofence) {
+          const centerLat = data.geofence.centerLatitude || -6.175392;
+          const centerLng = data.geofence.centerLongitude || 106.827153;
+          const dist = calculateDistance(lat, lng, centerLat, centerLng);
+          setRealDistance(dist);
+          setGpsError(null);
+        }
+      },
+      (err) => {
+        setGpsError("Gagal mendapatkan lokasi GPS. Pastikan izin lokasi aktif.");
+      },
+      { enableHighAccuracy: true, maximumAge: 0 }
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [data.initialized, data.geofence]);
+
   if (!data.initialized) {
     return (
       <div className="flex justify-center items-center h-64 text-slate-500 text-sm">
@@ -51,16 +95,29 @@ export default function StudentMobileApp({ loggedInStudent }) {
   }
 
   const allowedRadius = data.geofence.allowedRadiusMeters;
-  const isInsideGeofence = simulatedDistance <= allowedRadius;
-
   const centerLat = data.geofence.centerLatitude || -6.175392;
   const centerLng = data.geofence.centerLongitude || 106.827153;
 
-  // Approximate offset for simulated GPS distance (45 degree angle northeast)
-  const offsetLat = (simulatedDistance / 111320) * 0.7071;
-  const offsetLng = (simulatedDistance / (40075000 * Math.cos(centerLat * Math.PI / 180) / 360)) * 0.7071;
-  const studentLat = centerLat + offsetLat;
-  const studentLng = centerLng + offsetLng;
+  if (studentLat === null || studentLng === null) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64 text-slate-500 text-sm p-6 text-center space-y-2 bg-white m-4 rounded-xl shadow-xs border border-slate-200">
+        {gpsError ? (
+          <>
+            <MapPin className="w-8 h-8 text-rose-500 mb-2" />
+            <p className="text-rose-600 font-bold">{gpsError}</p>
+          </>
+        ) : (
+          <>
+            <RefreshCw className="w-8 h-8 animate-spin text-blue-900" /> 
+            <p className="font-bold text-slate-700">Mencari Sinyal GPS...</p>
+            <p className="text-[10px] text-slate-500">Harap izinkan akses lokasi (Location) pada browser/perangkat Anda.</p>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  const isInsideGeofence = realDistance <= allowedRadius;
 
   const handleResetChallenge = () => {
     setChallenge(getRandomLivenessChallenge());
@@ -72,7 +129,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
 
   const handleExecuteCheckIn = () => {
     if (!isInsideGeofence) {
-      alert(`Gagal: Posisi Anda (${simulatedDistance}m) di luar radius izin gerbang (${allowedRadius}m)!`);
+      alert(`Gagal: Posisi Anda (${realDistance}m) di luar radius izin gerbang (${allowedRadius}m)!`);
       return;
     }
     if (!livenessCompleted) {
@@ -89,7 +146,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
         classId: selectedStudent.classId,
         parentPhone: selectedStudent.parentPhone,
         method: 'mobile_liveness',
-        distanceMeters: simulatedDistance,
+        distanceMeters: realDistance,
         livenessPassed: true,
         livenessChallenge: challenge.label,
         photoProofUrl: selectedStudent.photoUrl,
@@ -180,8 +237,8 @@ export default function StudentMobileApp({ loggedInStudent }) {
               {/* Student Position Marker */}
               <Marker position={[studentLat, studentLng]} icon={getStudentIcon(isInsideGeofence)}>
                 <Popup className="text-xs">
-                  <div className="font-bold text-slate-800">Posisi Anda</div>
-                  <div className="text-slate-500">{simulatedDistance}m dari gerbang</div>
+                  <div className="font-bold text-slate-800">Posisi Anda Asli</div>
+                  <div className="text-slate-500">{realDistance}m dari gerbang</div>
                 </Popup>
               </Marker>
             </MapContainer>
@@ -201,19 +258,10 @@ export default function StudentMobileApp({ loggedInStudent }) {
               </span>
             </div>
 
-            <div className="pt-2 border-t border-slate-200/50">
-              <div className="flex justify-between text-[10px] text-slate-500 mb-1">
-                <span>Simulasi Gerak (Ubah Jarak):</span>
-                <span className="font-bold text-slate-700">{simulatedDistance}m / {allowedRadius}m Maks</span>
-              </div>
-              <input 
-                type="range" 
-                min="2" 
-                max="150" 
-                value={simulatedDistance}
-                onChange={(e) => setSimulatedDistance(Number(e.target.value))}
-                className="w-full accent-blue-900 cursor-pointer"
-              />
+            <div className="pt-2 border-t border-slate-200/50 flex flex-col items-center">
+              <span className="text-[10px] text-slate-500 mb-1 block">Akurasi Jarak GPS Anda:</span>
+              <span className="font-extrabold text-xl text-slate-800">{realDistance} Meter</span>
+              <span className="text-[9px] text-slate-400 mt-0.5">Maksimum Radius Izin: {allowedRadius} Meter</span>
             </div>
           </div>
         </div>

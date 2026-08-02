@@ -1,7 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { store } from '../firebase/services';
-import { Users, CheckCircle2, Clock, AlertCircle, FileText, MapPin, Send, Check, X, Eye } from 'lucide-react';
+import { Users, CheckCircle2, Clock, AlertCircle, FileText, MapPin, Send, Check, X, Eye, Crosshair } from 'lucide-react';
 import StudentManagement from './StudentManagement';
+import { MapContainer, TileLayer, Circle, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
+
+const schoolIcon = new L.DivIcon({
+  className: 'bg-transparent',
+  html: `<div style="background-color: #1e3a8a; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>`,
+  iconAnchor: [14, 14]
+});
+
+function MapUpdater({ center }) {
+  const map = useMap();
+  React.useEffect(() => {
+    map.setView(center, map.getZoom(), { animate: true });
+  }, [center, map]);
+  return null;
+}
 
 export default function AdminDashboard() {
   const [data, setData] = useState(store.getState());
@@ -25,6 +41,22 @@ export default function AdminDashboard() {
   const handleApproveLeave = (reqId) => store.updateLeaveStatus(reqId, 'approved');
   const handleRejectLeave = (reqId) => store.updateLeaveStatus(reqId, 'rejected');
   const handleUpdateGeofenceRadius = (e) => store.updateGeofence({ allowedRadiusMeters: Number(e.target.value) });
+  
+  const handleUseMyLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Browser Anda tidak mendukung Geolocation.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition((position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      if (confirm(`Pindahkan gerbang sekolah ke kordinat Anda saat ini?\n(Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`)) {
+        store.updateGeofence({ centerLatitude: lat, centerLongitude: lng });
+      }
+    }, (err) => {
+      alert("Gagal mendapatkan lokasi: " + err.message);
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -179,9 +211,36 @@ export default function AdminDashboard() {
               Radius Geofence Sekolah
             </h3>
             <div className="space-y-3 text-xs">
+              
+              {/* Map Preview */}
+              <div className="rounded-lg overflow-hidden border border-slate-200 h-32 relative z-0">
+                <MapContainer 
+                  center={[data.geofence.centerLatitude, data.geofence.centerLongitude]} 
+                  zoom={16} 
+                  scrollWheelZoom={false}
+                  className="h-full w-full"
+                >
+                  <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+                  <MapUpdater center={[data.geofence.centerLatitude, data.geofence.centerLongitude]} />
+                  <Circle 
+                    center={[data.geofence.centerLatitude, data.geofence.centerLongitude]} 
+                    radius={data.geofence.allowedRadiusMeters} 
+                    pathOptions={{ color: '#1e3a8a', fillColor: '#3b82f6', fillOpacity: 0.15 }} 
+                  />
+                  <Marker position={[data.geofence.centerLatitude, data.geofence.centerLongitude]} icon={schoolIcon} />
+                </MapContainer>
+              </div>
+
               <div>
-                <label className="text-slate-500 block mb-1">Lokasi Gerbang Utama</label>
-                <input type="text" value={data.geofence.schoolName} disabled className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-700 font-medium" />
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-slate-500 font-bold">Titik Pusat Kordinat</label>
+                </div>
+                <div className="flex gap-2">
+                  <input type="text" value={`${data.geofence.centerLatitude.toFixed(5)}, ${data.geofence.centerLongitude.toFixed(5)}`} disabled className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-700 font-mono text-[10px]" />
+                  <button onClick={handleUseMyLocation} className="p-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors" title="Gunakan Lokasi Saya Saat Ini">
+                    <Crosshair className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div>
                 <div className="flex justify-between items-center mb-1">
