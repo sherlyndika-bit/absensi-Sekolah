@@ -16,7 +16,7 @@ export default function FaceEnrollment() {
     return store.subscribe((newState) => setData(newState));
   }, []);
 
-  const currentStudent = data.students.find(s => s.id === selectedStudentId) || data.students[0];
+  const currentStudent = data.students.find(s => s.id === selectedStudentId) || data.students[0] || {};
 
   const handleCaptureAngle = (angleKey) => {
     setErrorMessage(null);

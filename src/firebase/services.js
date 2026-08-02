@@ -1,118 +1,101 @@
-// Firebase Data Services & Real-time Fallback Data Store
-import { formatParentWAMessage } from '../utils/faceAndGeoUtils';
+import supabase from '../supabase/config';
 
-// Coordinate Gerbang Sekolah Default (SMA Negeri 1 - Contoh: Monas Jakarta)
+// Coordinate Gerbang Sekolah Default (Fallback)
 export const DEFAULT_GEOFENCE = {
-  schoolName: "SMA Negeri 1 Jakarta",
-  centerLatitude: -6.175392,
-  centerLongitude: 106.827153,
-  allowedRadiusMeters: 50,
-  strictMode: true,
-  checkInLateTime: "07:15"
+  id: "school_gate",
+  school_name: "SMA Negeri 1 Jakarta",
+  center_latitude: -6.175392,
+  center_longitude: 106.827153,
+  allowed_radius_meters: 50,
+  strict_mode: true
 };
 
-// Initial Sample Data Students
-export const INITIAL_STUDENTS = [
-  {
-    id: "STD001",
-    nisn: "0051234567",
-    name: "Budi Santoso",
-    classId: "10-IPA-1",
-    parentPhone: "6281234567890",
-    parentName: "Bapak Santoso",
-    faceEnrollmentStatus: "approved", // approved, pending, none
-    photoUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80"
-  },
-  {
-    id: "STD002",
-    nisn: "0051234568",
-    name: "Siti Rahmawati",
-    classId: "10-IPA-1",
-    parentPhone: "6281987654321",
-    parentName: "Ibu Rahmawati",
-    faceEnrollmentStatus: "approved",
-    photoUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
-  },
-  {
-    id: "STD003",
-    nisn: "0051234569",
-    name: "Ahmad Rizky",
-    classId: "10-IPA-2",
-    parentPhone: "6285678901234",
-    parentName: "Bapak Rizky",
-    faceEnrollmentStatus: "pending",
-    photoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80"
-  },
-  {
-    id: "STD004",
-    nisn: "0051234570",
-    name: "Dewi Lestari",
-    classId: "10-IPA-2",
-    parentPhone: "6287712345678",
-    parentName: "Ibu Lestari",
-    faceEnrollmentStatus: "approved",
-    photoUrl: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80"
-  }
-];
-
-// Initial Attendance Records
-export const INITIAL_ATTENDANCES = [
-  {
-    id: "ATT-101",
-    studentId: "STD001",
-    studentName: "Budi Santoso",
-    classId: "10-IPA-1",
-    timestamp: new Date(Date.now() - 3600000).toISOString(),
-    timeStr: "06:45:12",
-    dateString: new Date().toISOString().split('T')[0],
-    status: "Hadir",
-    method: "mobile_liveness",
-    distanceMeters: 4.2,
-    livenessPassed: true,
-    photoProofUrl: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=150&auto=format&fit=crop&q=80",
-    waNotifSent: true
-  },
-  {
-    id: "ATT-102",
-    studentId: "STD002",
-    studentName: "Siti Rahmawati",
-    classId: "10-IPA-1",
-    timestamp: new Date(Date.now() - 1800000).toISOString(),
-    timeStr: "07:05:40",
-    dateString: new Date().toISOString().split('T')[0],
-    status: "Hadir",
-    method: "smart_kiosk",
-    distanceMeters: 1.5,
-    livenessPassed: true,
-    photoProofUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80",
-    waNotifSent: true
-  }
-];
-
-// Initial Sick & Leave Requests
-export const INITIAL_LEAVE_REQUESTS = [
-  {
-    id: "REQ-001",
-    studentId: "STD003",
-    studentName: "Ahmad Rizky",
-    classId: "10-IPA-2",
-    date: new Date().toISOString().split('T')[0],
-    category: "Sakit",
-    reason: "Demam tinggi & flu berat, diminta istirahat dokter",
-    medicalNoteUrl: "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=400&auto=format&fit=crop&q=80",
-    status: "pending",
-    submittedAt: new Date(Date.now() - 7200000).toISOString()
-  }
-];
-
-// In-Memory Data Store Proxy for Instant Interactive Demo & Firebase Mirror
-class LocalDataStore {
+class SupabaseDataStore {
   constructor() {
-    this.students = [...INITIAL_STUDENTS];
-    this.attendances = [...INITIAL_ATTENDANCES];
-    this.leaveRequests = [...INITIAL_LEAVE_REQUESTS];
-    this.geofence = { ...DEFAULT_GEOFENCE };
+    this.students = [];
+    this.attendances = [];
+    this.leaveRequests = [];
+    this.geofence = { 
+      schoolName: DEFAULT_GEOFENCE.school_name,
+      centerLatitude: DEFAULT_GEOFENCE.center_latitude,
+      centerLongitude: DEFAULT_GEOFENCE.center_longitude,
+      allowedRadiusMeters: DEFAULT_GEOFENCE.allowed_radius_meters
+    };
     this.listeners = [];
+    this.initialized = false;
+    this.initData();
+  }
+
+  async initData() {
+    try {
+      // Fetch Geofence
+      const { data: geoData } = await supabase.from('geofence_settings').select('*').single();
+      if (geoData) {
+        this.geofence = {
+          schoolName: geoData.school_name,
+          centerLatitude: geoData.center_latitude,
+          centerLongitude: geoData.center_longitude,
+          allowedRadiusMeters: geoData.allowed_radius_meters
+        };
+      }
+
+      // Fetch Users/Students
+      const { data: usersData } = await supabase.from('users').select('*').order('created_at', { ascending: true });
+      if (usersData) {
+        this.students = usersData.map(u => ({
+          id: u.id,
+          nisn: u.nisn,
+          name: u.name,
+          classId: u.class_id,
+          parentPhone: u.parent_phone,
+          parentName: u.parent_name,
+          faceEnrollmentStatus: u.face_enrollment_status,
+          photoUrl: u.photo_url
+        }));
+      }
+
+      // Fetch Attendances
+      const { data: attData } = await supabase.from('attendances').select('*').order('created_at', { ascending: false }).limit(50);
+      if (attData) {
+        this.attendances = attData.map(a => ({
+          id: a.id,
+          studentId: a.student_id,
+          studentName: a.student_name,
+          classId: a.class_id,
+          timestamp: a.timestamp,
+          timeStr: a.time_str,
+          dateString: a.date_string,
+          status: a.status,
+          method: a.method,
+          distanceMeters: a.distance_meters,
+          livenessPassed: a.liveness_passed,
+          photoProofUrl: a.photo_proof_url,
+          waNotifSent: a.wa_notif_sent
+        }));
+      }
+
+      // Fetch Leave Requests
+      const { data: reqData } = await supabase.from('sick_leave_requests').select('*').order('submitted_at', { ascending: false });
+      if (reqData) {
+        this.leaveRequests = reqData.map(r => ({
+          id: r.id,
+          studentId: r.student_id,
+          studentName: r.student_name,
+          classId: r.class_id,
+          date: r.date,
+          category: r.category,
+          reason: r.reason,
+          medicalNoteUrl: r.medical_note_url,
+          status: r.status,
+          submittedAt: r.submitted_at
+        }));
+      }
+
+      this.initialized = true;
+      this.notify();
+    } catch (err) {
+      console.error("Error fetching Supabase data:", err);
+    }
   }
 
   subscribe(callback) {
@@ -133,98 +116,183 @@ class LocalDataStore {
       students: [...this.students],
       attendances: [...this.attendances],
       leaveRequests: [...this.leaveRequests],
-      geofence: { ...this.geofence }
+      geofence: { ...this.geofence },
+      initialized: this.initialized
     };
   }
 
   // Record Attendance
-  addAttendance(record) {
+  async addAttendance(record) {
     const newRecord = {
-      id: `ATT-${Date.now().toString().slice(-4)}`,
+      id: `ATT-${Date.now()}`,
+      student_id: record.studentId,
+      student_name: record.studentName,
+      class_id: record.classId,
       timestamp: new Date().toISOString(),
-      timeStr: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      dateString: new Date().toISOString().split('T')[0],
-      waNotifSent: true,
-      ...record
+      time_str: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      date_string: new Date().toISOString().split('T')[0],
+      status: record.status || 'Hadir',
+      method: record.method || 'mobile_liveness',
+      distance_meters: record.distanceMeters,
+      liveness_passed: record.livenessPassed,
+      photo_proof_url: record.photoProofUrl,
+      wa_notif_sent: true
     };
 
-    this.attendances.unshift(newRecord);
+    // Optimistic UI update
+    const uiRecord = {
+      id: newRecord.id,
+      studentId: newRecord.student_id,
+      studentName: newRecord.student_name,
+      classId: newRecord.class_id,
+      timestamp: newRecord.timestamp,
+      timeStr: newRecord.time_str,
+      dateString: newRecord.date_string,
+      status: newRecord.status,
+      method: newRecord.method,
+      distanceMeters: newRecord.distance_meters,
+      livenessPassed: newRecord.liveness_passed,
+      photoProofUrl: newRecord.photo_proof_url,
+      waNotifSent: newRecord.wa_notif_sent
+    };
+    this.attendances.unshift(uiRecord);
     this.notify();
-    return newRecord;
+
+    // Persist to Supabase
+    await supabase.from('attendances').insert([newRecord]);
+    return uiRecord;
   }
 
   // Submit Self Enrollment Face
-  submitFaceEnrollment(studentId, photos) {
+  async submitFaceEnrollment(studentId, photos) {
     const student = this.students.find(s => s.id === studentId);
     if (student) {
       student.faceEnrollmentStatus = "pending";
-      student.photos = photos;
       this.notify();
+      await supabase.from('users').update({ face_enrollment_status: 'pending' }).eq('id', studentId);
     }
   }
 
   // Approve / Reject Face Enrollment (Admin Function)
-  updateEnrollmentStatus(studentId, newStatus) {
+  async updateEnrollmentStatus(studentId, newStatus) {
     const student = this.students.find(s => s.id === studentId);
     if (student) {
       student.faceEnrollmentStatus = newStatus;
       this.notify();
+      await supabase.from('users').update({ face_enrollment_status: newStatus }).eq('id', studentId);
     }
   }
 
   // Submit Sick / Doctor Leave Note
-  addLeaveRequest(request) {
+  async addLeaveRequest(request) {
     const newReq = {
-      id: `REQ-${Date.now().toString().slice(-4)}`,
-      submittedAt: new Date().toISOString(),
+      id: `REQ-${Date.now()}`,
+      student_id: request.studentId,
+      student_name: request.studentName,
+      class_id: request.classId,
+      date: request.date,
+      category: request.category,
+      reason: request.reason,
+      medical_note_url: request.medicalNoteUrl,
+      captured_direct_from_camera: true,
       status: 'pending',
-      ...request
+      submitted_at: new Date().toISOString()
     };
-    this.leaveRequests.unshift(newReq);
+
+    const uiReq = {
+      id: newReq.id,
+      studentId: newReq.student_id,
+      studentName: newReq.student_name,
+      classId: newReq.class_id,
+      date: newReq.date,
+      category: newReq.category,
+      reason: newReq.reason,
+      medicalNoteUrl: newReq.medical_note_url,
+      status: newReq.status,
+      submittedAt: newReq.submitted_at
+    };
+    this.leaveRequests.unshift(uiReq);
     this.notify();
-    return newReq;
+
+    await supabase.from('sick_leave_requests').insert([newReq]);
+    return uiReq;
   }
 
   // Update Leave Request Status (Admin)
-  updateLeaveStatus(reqId, status) {
+  async updateLeaveStatus(reqId, status) {
     const req = this.leaveRequests.find(r => r.id === reqId);
     if (req) {
       req.status = status;
       this.notify();
+      await supabase.from('sick_leave_requests').update({ status: status }).eq('id', reqId);
     }
   }
 
   // Update Geofence Config
-  updateGeofence(newConfig) {
+  async updateGeofence(newConfig) {
     this.geofence = { ...this.geofence, ...newConfig };
     this.notify();
+    await supabase.from('geofence_settings').update({
+      school_name: this.geofence.schoolName,
+      center_latitude: this.geofence.centerLatitude,
+      center_longitude: this.geofence.centerLongitude,
+      allowed_radius_meters: this.geofence.allowedRadiusMeters
+    }).eq('id', 'school_gate');
   }
 
   // --- Student CRUD ---
-  addStudent(studentData) {
+  async addStudent(studentData) {
+    const id = `STD${Date.now().toString().slice(-4)}`;
     const newStudent = {
-      id: `STD${Date.now().toString().slice(-4)}`,
-      faceEnrollmentStatus: 'none',
-      photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png',
-      ...studentData
+      id: id,
+      nisn: studentData.nisn,
+      name: studentData.name,
+      class_id: studentData.classId,
+      parent_phone: studentData.parentPhone,
+      parent_name: studentData.parentName,
+      face_enrollment_status: 'none',
+      photo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png'
     };
-    this.students.push(newStudent);
+
+    const uiStudent = {
+      id: newStudent.id,
+      nisn: newStudent.nisn,
+      name: newStudent.name,
+      classId: newStudent.class_id,
+      parentPhone: newStudent.parent_phone,
+      parentName: newStudent.parent_name,
+      faceEnrollmentStatus: newStudent.face_enrollment_status,
+      photoUrl: newStudent.photo_url
+    };
+
+    this.students.push(uiStudent);
     this.notify();
-    return newStudent;
+
+    await supabase.from('users').insert([newStudent]);
+    return uiStudent;
   }
 
-  updateStudent(studentId, updates) {
+  async updateStudent(studentId, updates) {
     const idx = this.students.findIndex(s => s.id === studentId);
     if (idx !== -1) {
       this.students[idx] = { ...this.students[idx], ...updates };
       this.notify();
+      
+      await supabase.from('users').update({
+        nisn: this.students[idx].nisn,
+        name: this.students[idx].name,
+        class_id: this.students[idx].classId,
+        parent_phone: this.students[idx].parentPhone,
+        parent_name: this.students[idx].parentName
+      }).eq('id', studentId);
     }
   }
 
-  deleteStudent(studentId) {
+  async deleteStudent(studentId) {
     this.students = this.students.filter(s => s.id !== studentId);
     this.notify();
+    await supabase.from('users').delete().eq('id', studentId);
   }
 }
 
-export const store = new LocalDataStore();
+export const store = new SupabaseDataStore();
