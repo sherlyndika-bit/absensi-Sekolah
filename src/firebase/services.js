@@ -159,7 +159,11 @@ class SupabaseDataStore {
     this.notify();
 
     // Persist to Supabase
-    await supabase.from('attendances').insert([newRecord]);
+    const { error } = await supabase.from('attendances').insert([newRecord]);
+    if (error) {
+      console.error("Gagal menyimpan absensi:", error);
+      alert("Gagal menyimpan data ke server! Pastikan RLS Supabase mengizinkan INSERT.");
+    }
     return uiRecord;
   }
 
@@ -169,7 +173,11 @@ class SupabaseDataStore {
     if (student) {
       student.faceEnrollmentStatus = "pending";
       this.notify();
-      await supabase.from('users').update({ face_enrollment_status: 'pending' }).eq('id', studentId);
+      const { error } = await supabase.from('users').update({ face_enrollment_status: 'pending' }).eq('id', studentId);
+      if (error) {
+        alert("Gagal memperbarui status wajah di server.");
+        console.error(error);
+      }
     }
   }
 
@@ -214,7 +222,11 @@ class SupabaseDataStore {
     this.leaveRequests.unshift(uiReq);
     this.notify();
 
-    await supabase.from('sick_leave_requests').insert([newReq]);
+    const { error } = await supabase.from('sick_leave_requests').insert([newReq]);
+    if (error) {
+      alert("Gagal mengirim surat izin ke server. Pastikan RLS Supabase mengizinkan INSERT.");
+      console.error(error);
+    }
     return uiReq;
   }
 
@@ -268,7 +280,11 @@ class SupabaseDataStore {
     this.students.push(uiStudent);
     this.notify();
 
-    await supabase.from('users').insert([newStudent]);
+    const { error } = await supabase.from('users').insert([newStudent]);
+    if (error) {
+      alert("Gagal menyimpan siswa ke server! " + error.message);
+      console.error(error);
+    }
     return uiStudent;
   }
 
