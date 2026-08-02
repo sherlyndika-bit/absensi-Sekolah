@@ -24,6 +24,88 @@ class SupabaseDataStore {
     this.listeners = [];
     this.initialized = false;
     this.initData();
+    
+    // Auto-poll Supabase every 3 seconds for real-time sync across devices
+    setInterval(() => {
+      this.fetchSilentUpdates();
+    }, 3000);
+  }
+
+  async fetchSilentUpdates() {
+    try {
+      const [geoRes, usersRes, attRes, leaveRes] = await Promise.all([
+        supabase.from('geofence_settings').select('*').single(),
+        supabase.from('users').select('*').order('created_at', { ascending: true }),
+        supabase.from('attendances').select('*').order('created_at', { ascending: false }).limit(50),
+        supabase.from('sick_leave_requests').select('*').order('submitted_at', { ascending: false })
+      ]);
+
+      let changed = false;
+
+      if (geoRes.data) {
+        this.geofence = {
+          schoolName: geoRes.data.school_name,
+          centerLatitude: geoRes.data.center_latitude,
+          centerLongitude: geoRes.data.center_longitude,
+          allowedRadiusMeters: geoRes.data.allowed_radius_meters
+        };
+      }
+
+      if (usersRes.data) {
+        this.students = usersRes.data.map(u => ({
+          id: u.id,
+          nisn: u.nisn,
+          name: u.name,
+          classId: u.class_id,
+          parentPhone: u.parent_phone,
+          parentName: u.parent_name,
+          faceEnrollmentStatus: u.face_enrollment_status || 'none',
+          photoUrl: u.photo_url
+        }));
+        changed = true;
+      }
+
+      if (attRes.data) {
+        this.attendances = attRes.data.map(a => ({
+          id: a.id,
+          studentId: a.student_id,
+          studentName: a.student_name,
+          classId: a.class_id,
+          timestamp: a.timestamp,
+          timeStr: a.time_str,
+          dateString: a.date_string,
+          status: a.status,
+          method: a.method,
+          distanceMeters: a.distance_meters,
+          livenessPassed: a.liveness_passed,
+          photoProofUrl: a.photo_proof_url,
+          waNotifSent: a.wa_notif_sent
+        }));
+        changed = true;
+      }
+
+      if (leaveRes.data) {
+        this.leaveRequests = leaveRes.data.map(r => ({
+          id: r.id,
+          studentId: r.student_id,
+          studentName: r.student_name,
+          classId: r.class_id,
+          date: r.date,
+          category: r.category,
+          reason: r.reason,
+          medicalNoteUrl: r.medical_note_url,
+          status: r.status,
+          submittedAt: r.submitted_at
+        }));
+        changed = true;
+      }
+
+      if (changed) {
+        this.notify();
+      }
+    } catch (err) {
+      console.error("Silent update error:", err);
+    }
   }
 
   async initData() {
@@ -172,10 +254,19 @@ class SupabaseDataStore {
     const student = this.students.find(s => s.id === studentId);
     if (student) {
       student.faceEnrollmentStatus = "pending";
+      if (photos && photos.front) {
+        student.photoUrl = photos.front;
+      }
       this.notify();
-      const { error } = await supabase.from('users').update({ face_enrollment_status: 'pending' }).eq('id', studentId);
+
+      const updatePayload = { face_enrollment_status: 'pending' };
+      if (photos && photos.front) {
+        updatePayload.photo_url = photos.front;
+      }
+
+      const { error } = await supabase.from('users').update(updatePayload).eq('id', studentId);
       if (error) {
-        alert("Gagal memperbarui status wajah di server.");
+        alert("Gagal memperbarui status wajah di server: " + error.message);
         console.error(error);
       }
     }
