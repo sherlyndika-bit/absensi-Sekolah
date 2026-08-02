@@ -1,24 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { store } from '../firebase/services';
 import { FileText, Camera, CheckCircle2, UploadCloud, Lock } from 'lucide-react';
 
-export default function SickLeaveModule() {
+export default function SickLeaveModule({ loggedInStudent }) {
   const [data, setData] = useState(store.getState());
-  const [selectedStudentId, setSelectedStudentId] = useState(data.students[2].id);
+  const selectedStudent = loggedInStudent;
   
   const [category, setCategory] = useState('Sakit');
   const [reason, setReason] = useState('');
-  const [photoCaptured, setPhotoCaptured] = useState(false);
+  const [photoCaptured, setPhotoCaptured] = useState(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState(null);
 
-  const sampleMedicalNoteUrl = "https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?w=400&auto=format&fit=crop&q=80";
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     return store.subscribe((newState) => setData(newState));
   }, []);
 
-  const handleSimulateDirectCameraCapture = () => setPhotoCaptured(true);
+  const handleOpenCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setIsCameraOpen(true);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch (err) {
+      alert("Kamera tidak dapat diakses. Pastikan Anda memberi izin kamera di browser.");
+    }
+  };
+
+  const handleCapturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      
+      const stream = video.srcObject;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      setIsCameraOpen(false);
+      setPhotoCaptured(photoDataUrl);
+    }
+  };
 
   const handleSubmitLeave = (e) => {
     e.preventDefault();
@@ -40,7 +73,7 @@ export default function SickLeaveModule() {
         date: new Date().toISOString().split('T')[0],
         category,
         reason,
-        medicalNoteUrl: sampleMedicalNoteUrl,
+        medicalNoteUrl: photoCaptured,
         capturedDirectFromCamera: true
       });
 
@@ -131,27 +164,47 @@ export default function SickLeaveModule() {
             <label className="text-slate-600 font-medium mb-1 block">Foto Surat Keterangan Dokter:</label>
             <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 text-center space-y-3">
               
-              {photoCaptured ? (
+              {isCameraOpen ? (
+                <div className="space-y-3">
+                  <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden border border-slate-300">
+                    <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                  </div>
+                  <canvas ref={canvasRef} className="hidden" />
+                  <button
+                    type="button"
+                    onClick={handleCapturePhoto}
+                    className="w-full py-2.5 bg-blue-900 text-white font-bold rounded-lg flex items-center justify-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" /> AMBIL FOTO SURAT
+                  </button>
+                </div>
+              ) : photoCaptured ? (
                 <div className="space-y-2">
-                  <img src={sampleMedicalNoteUrl} alt="Surat Dokter" className="w-full max-h-40 object-cover rounded-lg border border-slate-300" />
+                  <img src={photoCaptured} alt="Surat Dokter" className="w-full max-h-40 object-cover rounded-lg border border-slate-300" />
                   <span className="text-emerald-700 font-bold text-xs inline-flex items-center gap-1">
                     <CheckCircle2 className="w-4 h-4" /> Foto Surat Dokter Terambil
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => { setPhotoCaptured(null); handleOpenCamera(); }}
+                    className="mt-2 text-xs text-blue-700 font-bold underline"
+                  >
+                    Foto Ulang
+                  </button>
                 </div>
               ) : (
                 <div className="py-4 space-y-2">
                   <Camera className="w-8 h-8 text-slate-400 mx-auto" />
                   <p className="text-slate-500">Foto fisik surat keterangan dokter</p>
+                  <button
+                    type="button"
+                    onClick={handleOpenCamera}
+                    className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold rounded-lg transition-colors shadow-xs mx-auto block"
+                  >
+                    Buka Kamera & Foto Surat
+                  </button>
                 </div>
               )}
-
-              <button
-                type="button"
-                onClick={handleSimulateDirectCameraCapture}
-                className="px-4 py-2 bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold rounded-lg transition-colors shadow-xs"
-              >
-                {photoCaptured ? 'Foto Ulang Surat' : 'Buka Kamera & Foto Surat'}
-              </button>
 
             </div>
           </div>

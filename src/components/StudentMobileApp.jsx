@@ -43,6 +43,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const [livenessCompleted, setLivenessCompleted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -148,14 +149,19 @@ export default function StudentMobileApp({ loggedInStudent }) {
     }
   };
 
-  const handleCapturePhoto = () => {
-    if (videoRef.current && canvasRef.current) {
+  const handleStartScan = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    setIsScanning(true);
+    
+    // Simulate AI scanning for 2.5 seconds
+    setTimeout(() => {
       const video = videoRef.current;
       const canvas = canvasRef.current;
+      if (!video || !canvas) return;
+      
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
-      // Flip horisontal untuk efek cermin
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -166,9 +172,10 @@ export default function StudentMobileApp({ loggedInStudent }) {
         stream.getTracks().forEach(track => track.stop());
       }
       setIsCameraOpen(false);
+      setIsScanning(false);
       setLivenessCompleted(true);
       setCapturedPhoto(photoDataUrl);
-    }
+    }, 2500);
   };
 
   const handleExecuteCheckIn = () => {
@@ -327,14 +334,43 @@ export default function StudentMobileApp({ loggedInStudent }) {
               <div className="space-y-3">
                 <div className="relative w-full aspect-square bg-slate-900 rounded-lg overflow-hidden border-2 border-slate-300 shadow-inner">
                   <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+                  
+                  {/* Panduan Arah Wajah */}
+                  <div className="absolute top-4 left-0 right-0 z-10 flex justify-center">
+                    <div className="bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-full font-bold text-xs border border-white/20 animate-pulse flex items-center gap-2">
+                      <span>{challenge.icon}</span> 
+                      <span>MOHON {challenge.label.toUpperCase()}</span>
+                    </div>
+                  </div>
+
+                  {/* Efek Scanning */}
+                  {isScanning && (
+                    <div className="absolute inset-0 pointer-events-none z-20 overflow-hidden">
+                      <div className="w-full h-1 bg-emerald-400 shadow-[0_0_15px_5px_rgba(52,211,153,0.5)] animate-scan"></div>
+                      <div className="absolute inset-0 bg-blue-500/10 backdrop-blur-[1px]"></div>
+                      <div className="absolute bottom-4 left-0 right-0 text-center">
+                        <span className="bg-emerald-600/80 text-white text-[10px] font-bold px-3 py-1 rounded-full animate-pulse">
+                          Menganalisis Pola Wajah...
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="absolute inset-0 border-4 border-blue-500/30 rounded-lg pointer-events-none"></div>
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
                 <button
-                  onClick={handleCapturePhoto}
-                  className="w-full py-2.5 bg-gradient-to-r from-blue-700 to-blue-900 text-white text-xs font-bold rounded-lg shadow-md hover:from-blue-800 hover:to-blue-950 flex items-center justify-center gap-2 active:scale-[0.98]"
+                  onClick={handleStartScan}
+                  disabled={isScanning}
+                  className={`w-full py-3 text-white text-xs font-bold rounded-lg shadow-md flex items-center justify-center gap-2 transition-all ${
+                    isScanning ? 'bg-slate-500 cursor-wait' : 'bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 active:scale-[0.98]'
+                  }`}
                 >
-                  <Camera className="w-4 h-4" /> AMBIL FOTO & VERIFIKASI
+                  {isScanning ? (
+                    <><RefreshCw className="w-4 h-4 animate-spin" /> SEDANG MEMINDAI...</>
+                  ) : (
+                    <><Camera className="w-4 h-4" /> SAYA SUDAH {challenge.label.toUpperCase()} -> PINDAI</>
+                  )}
                 </button>
               </div>
             ) : livenessCompleted ? (
