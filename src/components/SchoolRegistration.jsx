@@ -5,7 +5,9 @@ import supabase from '../supabase/config';
 export default function SchoolRegistration({ onBack, onLogin }) {
   const [formData, setFormData] = useState({
     schoolName: '',
+    slug: '',
     level: 'SMA',
+    packagePlan: 'Basic',
     adminName: '',
     adminPhone: '',
     adminPassword: ''
@@ -23,7 +25,12 @@ export default function SchoolRegistration({ onBack, onLogin }) {
       // 1. Insert School
       const { data: schoolData, error: schoolError } = await supabase
         .from('schools')
-        .insert([{ name: formData.schoolName, level: formData.level }])
+        .insert([{ 
+          name: formData.schoolName, 
+          slug: formData.slug.toLowerCase(),
+          level: formData.level,
+          package_plan: formData.packagePlan
+        }])
         .select()
         .single();
       
@@ -119,9 +126,31 @@ export default function SchoolRegistration({ onBack, onLogin }) {
                   required
                   placeholder="Contoh: SMAN 1 Nusantara"
                   value={formData.schoolName}
-                  onChange={e => setFormData({...formData, schoolName: e.target.value})}
+                  onChange={e => {
+                    const val = e.target.value;
+                    const slug = val.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    setFormData({...formData, schoolName: val, slug: slug});
+                  }}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-600 block mb-1.5">Alamat URL Subdomain</label>
+                <div className="flex bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="sman1nusantara"
+                    value={formData.slug}
+                    onChange={e => setFormData({...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})}
+                    className="w-full bg-transparent px-4 py-3 text-sm font-medium focus:outline-none"
+                  />
+                  <div className="bg-slate-100 border-l border-slate-200 px-4 py-3 text-sm font-semibold text-slate-500 flex items-center">
+                    .absenpro.com
+                  </div>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">Siswa akan login melalui URL ini nanti.</p>
               </div>
 
               <div>
@@ -139,6 +168,26 @@ export default function SchoolRegistration({ onBack, onLogin }) {
                       }`}
                     >
                       {level}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-600 block mb-1.5">Pilihan Paket SaaS</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Basic', 'Pro', 'Enterprise'].map(plan => (
+                    <button
+                      key={plan}
+                      type="button"
+                      onClick={() => setFormData({...formData, packagePlan: plan})}
+                      className={`py-3 rounded-xl text-xs font-bold border transition-all ${
+                        formData.packagePlan === plan 
+                          ? 'bg-blue-50 border-blue-500 text-blue-700 ring-2 ring-blue-500/20' 
+                          : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      {plan}
+                      {plan === 'Pro' && <div className="text-[10px] text-amber-500 mt-0.5">Populer</div>}
                     </button>
                   ))}
                 </div>

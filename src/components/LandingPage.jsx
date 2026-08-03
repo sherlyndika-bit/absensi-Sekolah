@@ -4,14 +4,10 @@ import SchoolRegistration from './SchoolRegistration';
 import Login from './Login';
 
 export default function LandingPage({ onLogin }) {
-  const [activeView, setActiveView] = useState('landing'); // 'landing', 'register', 'login'
+  const [activeView, setActiveView] = useState('landing'); // 'landing', 'register'
 
   if (activeView === 'register') {
     return <SchoolRegistration onBack={() => setActiveView('landing')} onLogin={onLogin} />;
-  }
-
-  if (activeView === 'login') {
-    return <Login onLogin={onLogin} onBack={() => setActiveView('landing')} />;
   }
 
   return (
@@ -23,12 +19,6 @@ export default function LandingPage({ onLogin }) {
           <span>Absen<span className="text-blue-600">Pro</span></span>
         </div>
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => setActiveView('login')}
-            className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors hidden sm:block"
-          >
-            Masuk Portal
-          </button>
           <button 
             onClick={() => setActiveView('register')}
             className="px-5 py-2.5 bg-blue-900 text-white text-sm font-bold rounded-xl shadow-md hover:bg-blue-800 transition-all active:scale-95"
@@ -83,8 +73,8 @@ export default function LandingPage({ onLogin }) {
             <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mb-4">
               <MapPin className="w-6 h-6" />
             </div>
-            <h3 className="text-lg font-bold text-slate-900 mb-2">Geofencing Real-time</h3>
-            <p className="text-sm text-slate-500 leading-relaxed">Siswa hanya bisa menekan tombol absen jika terdeteksi berada di dalam radius gerbang sekolah yang telah ditentukan.</p>
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Terisolasi Sepenuhnya</h3>
+            <p className="text-slate-500 text-sm leading-relaxed">Keamanan tingkat tinggi. Setiap sekolah mendapatkan *subdomain* URL dan *database* mereka sendiri.</p>
           </div>
           
           <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">

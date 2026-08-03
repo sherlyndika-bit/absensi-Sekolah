@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { School, User, Lock, Mail, ChevronRight, AlertCircle, ArrowLeft } from 'lucide-react';
 import supabase from '../supabase/config';
 
-export default function Login({ onLogin, onBack }) {
+export default function Login({ onLogin, schoolInfo }) {
   const [activeTab, setActiveTab] = useState('student'); // 'student' or 'admin'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,6 +27,7 @@ export default function Login({ onLogin, onBack }) {
         .eq('nisn', email)
         .eq('password', password)
         .eq('role', 'admin')
+        .eq('school_id', schoolInfo.id)
         .single();
 
       if (error || !data) {
@@ -59,6 +60,7 @@ export default function Login({ onLogin, onBack }) {
         .select('*, schools(*)')
         .eq('nisn', nisn)
         .eq('role', 'student')
+        .eq('school_id', schoolInfo.id)
         .single();
       
       if (error || !data) {
@@ -100,16 +102,11 @@ export default function Login({ onLogin, onBack }) {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8 relative">
-        {onBack && (
-          <button onClick={onBack} className="absolute left-0 top-0 p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-        )}
         <div className="mx-auto w-16 h-16 bg-blue-900 rounded-2xl shadow-lg flex items-center justify-center text-white mb-4 mt-8 sm:mt-0">
           <School className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Portal AbsenPro SaaS</h2>
-        <p className="text-sm text-slate-500 mt-2">Login ke Ruang Kerja Sekolah Anda</p>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Portal {schoolInfo?.name || 'Sekolah'}</h2>
+        <p className="text-sm text-slate-500 mt-2">Masuk ke ruang kerja {schoolInfo?.level} Anda</p>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
