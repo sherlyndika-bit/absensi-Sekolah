@@ -24,6 +24,17 @@ function MapUpdater({ center }) {
   return null;
 }
 
+function ResizeFix() {
+  const map = useMap();
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [map]);
+  return null;
+}
+
 export default function AdminDashboard() {
   const [data, setData] = useState(store.getState());
   const [selectedPhoto, setSelectedPhoto] = useState(null);
@@ -387,6 +398,7 @@ export default function AdminDashboard() {
                 scrollWheelZoom={true}
                 className="h-full w-full"
               >
+                <ResizeFix />
                 <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
                 
                 {/* Gerbang Sekolah */}
