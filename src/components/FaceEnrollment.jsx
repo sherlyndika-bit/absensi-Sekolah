@@ -115,7 +115,13 @@ export default function FaceEnrollment() {
   const renderAngleBox = (angleKey, label) => {
     const isCameraActive = activeCamera === angleKey;
     const isCaptured = !!capturedPhotos[angleKey];
-    const displayImg = capturedPhotos[angleKey] || currentStudent.photoUrl || fallbackImg;
+    
+    let displayImg = fallbackImg;
+    if (capturedPhotos[angleKey]) {
+      displayImg = capturedPhotos[angleKey];
+    } else if (angleKey === 'front' && currentStudent.photoUrl) {
+      displayImg = currentStudent.photoUrl;
+    }
 
     return (
       <div className="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center space-y-2">
