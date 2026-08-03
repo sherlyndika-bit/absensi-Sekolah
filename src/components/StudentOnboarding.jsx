@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { store } from '../firebase/services';
 import { UserCheck, CheckCircle2, ShieldCheck, Camera, ScanFace, AlertCircle } from 'lucide-react';
 import * as faceapi from '@vladmandic/face-api';
@@ -204,7 +204,7 @@ export default function StudentOnboarding({ activeStudent }) {
                     'hidden'
                   }`}>
                     {scanStatus === 'loading' ? 'Memuat AI Model...' :
-                     scanStatus === 'scanning' ? 'Arahkan Wajah ke Kamera...' : 'Wajah Terdeteksi! 📸'}
+                     scanStatus === 'scanning' ? 'Arahkan Wajah ke Kamera...' : 'Wajah Terdeteksi! ??'}
                   </div>
                 </div>
               </div>
@@ -246,8 +246,5 @@ export default function StudentOnboarding({ activeStudent }) {
         </div>
       </div>
     );
-  }
-  }
+  } return null; }
 
-  return null;
-}
