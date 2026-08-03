@@ -52,16 +52,26 @@ class SupabaseDataStore {
       }
 
       if (usersRes.data) {
-        this.students = usersRes.data.map(u => ({
-          id: u.id,
-          nisn: u.nisn,
-          name: u.name,
-          classId: u.class_id,
-          parentPhone: u.parent_phone,
-          parentName: u.parent_name,
-          faceEnrollmentStatus: u.face_enrollment_status || 'none',
-          photoUrl: u.photo_url
-        }));
+        this.students = usersRes.data.map(u => {
+          let finalPhotoUrl = u.photo_url;
+          let faceDescriptor = null;
+          if (u.photo_url && u.photo_url.includes('|||')) {
+            const parts = u.photo_url.split('|||');
+            finalPhotoUrl = parts[0];
+            try { faceDescriptor = JSON.parse(parts[1]); } catch(e) {}
+          }
+          return {
+            id: u.id,
+            nisn: u.nisn,
+            name: u.name,
+            classId: u.class_id,
+            parentPhone: u.parent_phone,
+            parentName: u.parent_name,
+            faceEnrollmentStatus: u.face_enrollment_status || 'none',
+            photoUrl: finalPhotoUrl,
+            faceDescriptor: faceDescriptor
+          };
+        });
         changed = true;
       }
 

@@ -171,8 +171,8 @@ export default function StudentMobileApp({ loggedInStudent }) {
               if (detection) {
                 // Check Face Recognition Match
                 let isMatch = false;
-                if (loggedInStudent.faceDescriptor) {
-                  const enrolledDescriptor = new Float32Array(loggedInStudent.faceDescriptor);
+                if (activeStudent.faceDescriptor) {
+                  const enrolledDescriptor = new Float32Array(activeStudent.faceDescriptor);
                   const distance = faceapi.euclideanDistance(detection.descriptor, enrolledDescriptor);
                   isMatch = distance <= 0.55; // 0.55 is a strict/good threshold
                 } else {
@@ -284,8 +284,8 @@ export default function StudentMobileApp({ loggedInStudent }) {
   };
 
   // --- RENDER EARLY RETURN FOR ONBOARDING ---
-  if (!loggedInStudent || loggedInStudent.faceEnrollmentStatus === 'none' || loggedInStudent.faceEnrollmentStatus === 'rejected') {
-    return <StudentOnboarding activeStudent={loggedInStudent} />;
+  if (!activeStudent || activeStudent.faceEnrollmentStatus === 'none' || activeStudent.faceEnrollmentStatus === 'rejected') {
+    return <StudentOnboarding activeStudent={activeStudent} />;
   }
 
   return (

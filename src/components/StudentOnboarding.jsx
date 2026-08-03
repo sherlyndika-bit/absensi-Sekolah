@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect } from 'react';
 import { store } from '../firebase/services';
 import { UserCheck, CheckCircle2, ShieldCheck, Camera, ScanFace, AlertCircle } from 'lucide-react';
 import * as faceapi from '@vladmandic/face-api';
@@ -114,29 +114,60 @@ export default function StudentOnboarding({ activeStudent }) {
 
   if (step === 1) {
     return (
-      <div className="max-w-md mx-auto space-y-4">
-        <div className="clean-card p-6 space-y-5">
-          <div className="text-center space-y-2">
-            <div className="w-16 h-16 bg-blue-100 text-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-              <ShieldCheck className="w-8 h-8" />
+      <div className="max-w-md mx-auto space-y-6 pt-4 pb-20">
+        <div className="text-center space-y-4">
+          <div className="relative w-24 h-24 mx-auto">
+            <div className="absolute inset-0 bg-blue-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+            <div className="relative w-full h-full bg-gradient-to-tr from-blue-600 to-blue-900 rounded-[2rem] flex items-center justify-center shadow-xl rotate-3">
+              <ScanFace className="w-12 h-12 text-white -rotate-3" />
             </div>
-            <h2 className="text-lg font-extrabold text-slate-800">Pendaftaran Wajah Wajib</h2>
-            <p className="text-xs text-slate-500">Anda belum mendaftarkan wajah. Ini adalah syarat wajib untuk melakukan absensi kehadiran.</p>
           </div>
-
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
-            <h3 className="text-xs font-bold text-slate-700 mb-2 uppercase tracking-wide">TATA CARA SCAN WAJAH:</h3>
-            <ul className="text-xs text-slate-600 space-y-2">
-              <li className="flex gap-2"><span>1️⃣</span> <b>Cari Tempat Terang:</b> Pastikan wajah Anda tidak gelap/membelakangi cahaya.</li>
-              <li className="flex gap-2"><span>2️⃣</span> <b>Lepas Aksesoris:</b> Tolong lepas kacamata, masker, atau topi Anda.</li>
-              <li className="flex gap-2"><span>3️⃣</span> <b>Pandangan Lurus:</b> Tatap lurus ke arah kamera HP Anda dan diam selama 2 detik.</li>
-            </ul>
+          
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Face ID Setup</h2>
+            <p className="text-sm text-slate-500 font-medium px-4">Sistem keamanan biometrik untuk absensi kehadiran Anda.</p>
           </div>
-
-          <button onClick={handleOpenCamera} className="w-full py-3.5 bg-blue-900 text-white text-xs font-bold rounded-lg shadow-[0_4px_14px_0_rgba(30,58,138,0.39)] transition-all active:scale-[0.98]">
-            SAYA MENGERTI, MULAI SCAN SEKARANG
-          </button>
         </div>
+
+        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6 space-y-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0 border border-amber-100">
+              <svg className="w-6 h-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Pencahayaan Terang</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">Pastikan wajah Anda mendapat cahaya yang cukup dan tidak membelakangi sumber cahaya (Backlight).</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center flex-shrink-0 border border-rose-100">
+              <svg className="w-6 h-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Lepas Aksesoris</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">Lepaskan kacamata hitam, masker, atau topi agar AI dapat memetakan struktur wajah Anda dengan sempurna.</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 border border-blue-100">
+              <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Tatap Kamera</h3>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">Posisikan wajah Anda di tengah lingkaran yang disediakan dan tatap lurus ke lensa kamera selama 2 detik.</p>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          onClick={handleOpenCamera} 
+          className="w-full py-4 bg-slate-900 text-white text-sm font-bold rounded-2xl shadow-lg hover:bg-slate-800 hover:-translate-y-0.5 transition-all active:scale-[0.98] active:translate-y-0 flex items-center justify-center gap-2"
+        >
+          SAYA MENGERTI, MULAI SCAN
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+        </button>
       </div>
     );
   }
@@ -191,18 +222,32 @@ export default function StudentOnboarding({ activeStudent }) {
     );
   }
 
-  return (
-    <div className="max-w-md mx-auto space-y-4">
-      <div className="clean-card p-8 text-center space-y-4">
-        <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
-          <CheckCircle2 className="w-10 h-10" />
+  if (step === 3) {
+    return (
+      <div className="max-w-md mx-auto space-y-4 pt-10">
+        <div className="bg-white rounded-[2rem] p-8 space-y-6 text-center border border-slate-100 shadow-xl shadow-slate-200/50">
+          <div className="w-24 h-24 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-8 ring-emerald-50/50">
+            <CheckCircle2 className="w-12 h-12" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-slate-800">Face ID Aktif!</h2>
+            <p className="text-sm text-slate-500">Wajah Anda telah berhasil dipetakan ke dalam sistem keamanan kami. Sekarang Anda bisa melakukan absensi.</p>
+          </div>
+          
+          <div className="pt-4">
+            <button 
+              onClick={() => window.location.reload()} 
+              className="w-full py-4 bg-emerald-500 text-white text-sm font-bold rounded-2xl shadow-lg shadow-emerald-500/30 hover:bg-emerald-600 hover:-translate-y-0.5 transition-all active:scale-[0.98] active:translate-y-0 flex items-center justify-center gap-2"
+            >
+              MULAI ABSENSI SEKARANG
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            </button>
+          </div>
         </div>
-        <h2 className="text-lg font-extrabold text-slate-800">Wajah Berhasil Didaftarkan!</h2>
-        <p className="text-xs text-slate-500">Terima kasih, profil wajah Anda sudah tersimpan dengan aman dan telah disetujui otomatis oleh sistem.</p>
-        <button onClick={() => window.location.reload()} className="w-full py-3 bg-slate-900 text-white text-xs font-bold rounded-lg shadow-md hover:bg-slate-800 mt-4">
-          LANJUT KE MENU ABSENSI
-        </button>
       </div>
-    </div>
-  );
+    );
+  }
+  }
+
+  return null;
 }
