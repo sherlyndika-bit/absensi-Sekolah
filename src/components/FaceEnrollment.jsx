@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { store } from '../firebase/services';
 import { UserCheck, CheckCircle2, UploadCloud, AlertCircle, Camera, ScanFace } from 'lucide-react';
+import * as faceapi from '@vladmandic/face-api';
 
 export default function FaceEnrollment() {
   const [data, setData] = useState(store.getState());
@@ -18,6 +19,7 @@ export default function FaceEnrollment() {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanTimerRef = useRef(null);
+  const detectionIntervalRef = useRef(null);
 
   useEffect(() => {
     return store.subscribe((newState) => {
@@ -44,24 +46,43 @@ export default function FaceEnrollment() {
     stopCamera();
     
     setIsCameraActive(true);
-    setScanStatus('scanning');
+    setScanStatus('loading');
     
     try {
+      if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+        await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+      }
+
+      setScanStatus('scanning');
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          
+          let detectCount = 0;
+          clearInterval(detectionIntervalRef.current);
+          detectionIntervalRef.current = setInterval(async () => {
+            if (videoRef.current && videoRef.current.readyState === 4) {
+              const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }));
+              
+              if (detection) {
+                detectCount++;
+                if (detectCount === 1) {
+                  setScanStatus('detected');
+                }
+                if (detectCount >= 3) {
+                  clearInterval(detectionIntervalRef.current);
+                  executeCapture();
+                }
+              } else {
+                detectCount = 0;
+                setScanStatus('scanning');
+              }
+            }
+          }, 400);
         }
-      }, 100);
-
-      // Auto-scan logic (3 seconds)
-      scanTimerRef.current = setTimeout(() => {
-        setScanStatus('detected');
-        
-        scanTimerRef.current = setTimeout(() => {
-          executeCapture();
-        }, 1000);
-      }, 2000);
+      }, 300);
 
     } catch (err) {
       setErrorMessage("Gagal mengakses kamera. Pastikan browser memiliki izin.");
@@ -91,7 +112,7 @@ export default function FaceEnrollment() {
       const photoDataUrl = canvas.toDataURL('image/jpeg', 0.6);
       
       stopCamera();
-      
+      clearInterval(detectionIntervalRef.current);
       setCapturedPhoto(photoDataUrl);
       setIsCameraActive(false);
       setScanStatus('captured');
@@ -99,6 +120,7 @@ export default function FaceEnrollment() {
   };
 
   const handleResetCapture = () => {
+    clearInterval(detectionIntervalRef.current);
     clearTimeout(scanTimerRef.current);
     stopCamera();
     setCapturedPhoto(null);
@@ -187,11 +209,13 @@ export default function FaceEnrollment() {
                   {/* Status Overlay */}
                   <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                     <div className={`px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg transition-all ${
+                      scanStatus === 'loading' ? 'bg-amber-500/90 text-white border border-amber-400' :
                       scanStatus === 'scanning' ? 'bg-black/50 text-white border border-white/20' :
                       scanStatus === 'detected' ? 'bg-emerald-500/90 text-white border border-emerald-400 scale-110' :
                       'hidden'
                     }`}>
-                      {scanStatus === 'scanning' ? 'Menganalisis Wajah...' : 'Wajah Terdeteksi! 📸'}
+                      {scanStatus === 'loading' ? 'Memuat AI Model...' :
+                       scanStatus === 'scanning' ? 'Arahkan Wajah ke Kamera...' : 'Wajah Terdeteksi! 📸'}
                     </div>
                   </div>
                 </div>

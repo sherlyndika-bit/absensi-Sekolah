@@ -3,6 +3,7 @@ import { store } from '../firebase/services';
 import { Smartphone, MapPin, ShieldCheck, CheckCircle2, RefreshCw, Camera } from 'lucide-react';
 import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import * as faceapi from '@vladmandic/face-api';
 
 // Fix Leaflet Default Icon Issues
 const schoolIcon = new L.DivIcon({
@@ -44,6 +45,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const scanTimerRef = useRef(null);
+  const detectionIntervalRef = useRef(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [scanStatus, setScanStatus] = useState('');
   const [cameraError, setCameraError] = useState(null);
@@ -131,6 +133,13 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const handleOpenFaceVerification = async () => {
     try {
       setCameraError(null);
+      setScanStatus('loading');
+      
+      // Load model if not loaded
+      if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+        await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+      }
+
       setScanStatus('scanning');
       if (videoRef.current && videoRef.current.srcObject) {
         videoRef.current.srcObject.getTracks().forEach(track => track.stop());
@@ -140,16 +149,30 @@ export default function StudentMobileApp({ loggedInStudent }) {
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          
+          let detectCount = 0;
+          clearInterval(detectionIntervalRef.current);
+          detectionIntervalRef.current = setInterval(async () => {
+            if (videoRef.current && videoRef.current.readyState === 4) {
+              const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }));
+              
+              if (detection) {
+                detectCount++;
+                if (detectCount === 1) {
+                  setScanStatus('detected');
+                }
+                if (detectCount >= 3) {
+                  clearInterval(detectionIntervalRef.current);
+                  handleCapturePhoto();
+                }
+              } else {
+                detectCount = 0;
+                setScanStatus('scanning');
+              }
+            }
+          }, 400);
         }
-      }, 100);
-
-      // Auto-scan logic
-      scanTimerRef.current = setTimeout(() => {
-        setScanStatus('detected');
-        scanTimerRef.current = setTimeout(() => {
-          handleCapturePhoto();
-        }, 1000);
-      }, 2000);
+      }, 300);
       
     } catch (err) {
       setCameraError("Kamera diblokir. Harap izinkan akses kamera browser Anda.");
@@ -187,6 +210,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
     }
+    clearInterval(detectionIntervalRef.current);
     setIsCameraOpen(false);
     setScanStatus('');
     setLivenessCompleted(true);
@@ -357,11 +381,13 @@ export default function StudentMobileApp({ loggedInStudent }) {
                     )}
                     <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                       <div className={`px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg transition-all ${
+                        scanStatus === 'loading' ? 'bg-amber-500/90 text-white border border-amber-400' :
                         scanStatus === 'scanning' ? 'bg-black/50 text-white border border-white/20' :
                         scanStatus === 'detected' ? 'bg-emerald-500/90 text-white border border-emerald-400 scale-110' :
                         'hidden'
                       }`}>
-                        {scanStatus === 'scanning' ? 'Memindai Wajah...' : 'Wajah Terdeteksi! 📸'}
+                        {scanStatus === 'loading' ? 'Memuat AI Model...' :
+                         scanStatus === 'scanning' ? 'Arahkan Wajah ke Kamera...' : 'Wajah Terdeteksi! 📸'}
                       </div>
                     </div>
                   </div>
@@ -369,7 +395,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
                 <canvas ref={canvasRef} className="hidden" />
                 <button
                   onClick={() => {
-                    clearTimeout(scanTimerRef.current);
+                    clearInterval(detectionIntervalRef.current);
                     if (videoRef.current && videoRef.current.srcObject) {
                       videoRef.current.srcObject.getTracks().forEach(track => track.stop());
                     }
