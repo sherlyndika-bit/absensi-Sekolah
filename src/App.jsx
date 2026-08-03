@@ -8,6 +8,7 @@ import SickLeaveModule from './components/SickLeaveModule';
 import StudentManagement from './components/StudentManagement';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
+import SuperAdminDashboard from './components/SuperAdminDashboard';
 import { store } from './firebase/services';
 import supabase from './supabase/config';
 
@@ -16,17 +17,19 @@ export default function App() {
   const [tenantInfo, setTenantInfo] = useState(null);
   const [isLoadingTenant, setIsLoadingTenant] = useState(true);
   const [tenantNotFound, setTenantNotFound] = useState(false);
+  const [isSuperAdminRoute, setIsSuperAdminRoute] = useState(false);
 
   useEffect(() => {
-    // Kita ubah ke sistem URL Path: /sekolah/portal
-    // Contoh pathname: /sman1toapaya/portal atau /sman1toapaya
     const pathname = window.location.pathname;
-    const parts = pathname.split('/').filter(Boolean); // Hapus empty string
+    const parts = pathname.split('/').filter(Boolean);
     
     let slug = null;
     
-    // Jika path-nya seperti /namasekolah atau /namasekolah/portal
-    if (parts.length > 0 && parts[0] !== 'daftar' && parts[0] !== 'pricing') {
+    if (parts.length > 0 && parts[0] === 'superadmin') {
+       setIsSuperAdminRoute(true);
+       setIsLoadingTenant(false);
+       return;
+    } else if (parts.length > 0 && parts[0] !== 'daftar' && parts[0] !== 'pricing') {
        slug = parts[0];
     }
 
@@ -50,7 +53,9 @@ export default function App() {
     const savedUser = localStorage.getItem('absensi_user_session');
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
-      store.setSchoolId(parsed.schoolId);
+      if (parsed.schoolId) {
+        store.setSchoolId(parsed.schoolId);
+      }
       return parsed;
     }
     return null;
@@ -60,6 +65,7 @@ export default function App() {
     const savedUser = localStorage.getItem('absensi_user_session');
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
+      if (parsed.role === 'superadmin') return 'superadmin';
       return parsed.role === 'admin' ? 'admin' : 'mobile';
     }
     return 'admin';
@@ -68,9 +74,14 @@ export default function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     localStorage.setItem('absensi_user_session', JSON.stringify(userData));
-    store.setSchoolId(userData.schoolId);
     
-    if (userData.role === 'admin') {
+    if (userData.schoolId) {
+      store.setSchoolId(userData.schoolId);
+    }
+    
+    if (userData.role === 'superadmin') {
+      setActiveTab('superadmin');
+    } else if (userData.role === 'admin') {
       setActiveTab('admin');
     } else {
       setActiveTab('mobile');
@@ -80,6 +91,7 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('absensi_user_session');
+    window.location.reload();
   };
 
   // 1. Loading State
@@ -87,12 +99,28 @@ export default function App() {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-900">
         <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-white font-bold tracking-widest text-sm">MEMUAT RUANG KERJA...</p>
+        <p className="text-white font-bold tracking-widest text-sm">MEMUAT...</p>
       </div>
     );
   }
 
-  // 2. Tenant Not Found Error
+  // 2. Super Admin Route
+  if (isSuperAdminRoute) {
+    if (!user) {
+       // Re-use login but tell it we are superadmin
+       return <Login onLogin={handleLogin} isSuperAdminLogin={true} />;
+    }
+    if (user.role !== 'superadmin') {
+       return <div className="p-8 text-center text-red-600 font-bold">Akses Ditolak. Anda bukan Super Admin.</div>;
+    }
+    return (
+      <Layout activeTab="superadmin" setActiveTab={() => {}} user={user} onLogout={handleLogout}>
+        <SuperAdminDashboard />
+      </Layout>
+    );
+  }
+
+  // 3. Tenant Not Found Error
   if (tenantNotFound) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center">
@@ -111,14 +139,14 @@ export default function App() {
     );
   }
 
-  // 3. Root Domain (Landing Page)
+  // 4. Root Domain (Landing Page)
   if (!tenantSlug) {
     return <LandingPage onLogin={() => {
       alert("Registrasi Berhasil! Silakan masukkan URL yang Anda buat tadi di address bar (Contoh: /sekolahku/portal).");
     }} />;
   }
 
-  // 4. Tenant Portal (Subdomain logic)
+  // 5. Tenant Portal (Subdomain logic)
   if (!user) {
     return <Login onLogin={handleLogin} schoolInfo={tenantInfo} />;
   }

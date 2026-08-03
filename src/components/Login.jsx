@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { School, User, Lock, Mail, ChevronRight, AlertCircle, ArrowLeft } from 'lucide-react';
 import supabase from '../supabase/config';
 
-export default function Login({ onLogin, schoolInfo }) {
-  const [activeTab, setActiveTab] = useState('student'); // 'student' or 'admin'
+export default function Login({ onLogin, schoolInfo, isSuperAdminLogin = false }) {
+  const [activeTab, setActiveTab] = useState(isSuperAdminLogin ? 'admin' : 'student'); // 'student' or 'admin'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -20,15 +20,19 @@ export default function Login({ onLogin, schoolInfo }) {
     setLoading(true);
 
     try {
-      // In this SaaS demo, we registered Admin with nisn=phone and password
-      const { data, error } = await supabase
+      let query = supabase
         .from('users')
         .select('*, schools(*)')
         .eq('nisn', email)
-        .eq('password', password)
-        .eq('role', 'admin')
-        .eq('school_id', schoolInfo.id)
-        .single();
+        .eq('password', password);
+
+      if (isSuperAdminLogin) {
+        query = query.eq('role', 'superadmin');
+      } else {
+        query = query.eq('role', 'admin').eq('school_id', schoolInfo.id);
+      }
+
+      const { data, error } = await query.single();
 
       if (error || !data) {
         throw new Error('Username atau password admin salah.');
@@ -36,7 +40,7 @@ export default function Login({ onLogin, schoolInfo }) {
 
       onLogin({ 
         id: data.id,
-        role: 'admin', 
+        role: data.role, 
         name: data.name,
         schoolId: data.school_id,
         schoolName: data.schools?.name,
@@ -105,32 +109,42 @@ export default function Login({ onLogin, schoolInfo }) {
         <div className="mx-auto w-16 h-16 bg-blue-900 rounded-2xl shadow-lg flex items-center justify-center text-white mb-4 mt-8 sm:mt-0">
           <School className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Portal {schoolInfo?.name || 'Sekolah'}</h2>
-        <p className="text-sm text-slate-500 mt-2">Masuk ke ruang kerja {schoolInfo?.level} Anda</p>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+          {isSuperAdminLogin ? 'SaaS Owner Portal' : `Portal ${schoolInfo?.name || 'Sekolah'}`}
+        </h2>
+        <p className="text-sm text-slate-500 mt-2">
+          {isSuperAdminLogin ? 'Masuk ke Dasbor Super Admin' : `Masuk ke ruang kerja ${schoolInfo?.level} Anda`}
+        </p>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-xl shadow-slate-200/50 sm:rounded-2xl sm:px-10 border border-slate-100">
           
           {/* Tabs */}
-          <div className="flex p-1 bg-slate-100 rounded-lg mb-8">
-            <button
-              onClick={() => { setActiveTab('student'); setError(null); }}
-              className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
-                activeTab === 'student' ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Siswa
-            </button>
-            <button
-              onClick={() => { setActiveTab('admin'); setError(null); }}
-              className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
-                activeTab === 'admin' ? 'bg-white text-blue-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              Admin Sekolah
-            </button>
-          </div>
+          {!isSuperAdminLogin && (
+            <div className="flex p-1 bg-slate-100 rounded-lg mb-8">
+              <button
+                onClick={() => setActiveTab('student')}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-md transition-all ${
+                  activeTab === 'student' 
+                    ? 'bg-white text-slate-900 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Siswa
+              </button>
+              <button
+                onClick={() => setActiveTab('admin')}
+                className={`flex-1 py-2.5 text-sm font-bold rounded-md transition-all ${
+                  activeTab === 'admin' 
+                    ? 'bg-white text-slate-900 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                Admin/Guru
+              </button>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">

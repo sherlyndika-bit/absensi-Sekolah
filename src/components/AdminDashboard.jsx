@@ -3,6 +3,7 @@ import { store } from '../firebase/services';
 import { Users, CheckCircle2, Clock, AlertCircle, FileText, MapPin, Send, Check, X, Eye, Crosshair } from 'lucide-react';
 import { MapContainer, TileLayer, Circle, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import SupportChatWidget from './SupportChatWidget';
 
 const schoolIcon = new L.DivIcon({
   className: 'bg-transparent',
@@ -453,6 +454,8 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      
+      <SupportChatWidget />
     </div>
     </div>
   );
