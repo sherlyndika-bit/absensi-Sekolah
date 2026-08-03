@@ -8,7 +8,21 @@ import SickLeaveModule from './components/SickLeaveModule';
 import StudentManagement from './components/StudentManagement';
 import LandingPage from './components/LandingPage';
 import Login from './components/Login';
-import SuperAdminDashboard from './components/SuperAdminDashboard';
+
+// SaaS Modules
+import SuperAdminOverview from './components/SuperAdminOverview';
+import SuperAdminTenants from './components/SuperAdminTenants';
+import SuperAdminSupport from './components/SuperAdminSupport';
+import SuperAdminBilling from './components/SuperAdminBilling';
+import SuperAdminBroadcasts from './components/SuperAdminBroadcasts';
+import SuperAdminAnalytics from './components/SuperAdminAnalytics';
+import SuperAdminSecurity from './components/SuperAdminSecurity';
+import SuperAdminActivity from './components/SuperAdminActivity';
+import SuperAdminHealth from './components/SuperAdminHealth';
+import SuperAdminIntegrations from './components/SuperAdminIntegrations';
+import SuperAdminAPI from './components/SuperAdminAPI';
+import SuperAdminSettings from './components/SuperAdminSettings';
+
 import { store } from './firebase/services';
 import supabase from './supabase/config';
 
@@ -18,6 +32,8 @@ export default function App() {
   const [isLoadingTenant, setIsLoadingTenant] = useState(true);
   const [tenantNotFound, setTenantNotFound] = useState(false);
   const [isSuperAdminRoute, setIsSuperAdminRoute] = useState(false);
+
+  const saasRoles = ['superadmin', 'owner', 'manager', 'devops', 'finance', 'support'];
 
   useEffect(() => {
     const pathname = window.location.pathname;
@@ -65,7 +81,7 @@ export default function App() {
     const savedUser = localStorage.getItem('absensi_user_session');
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
-      if (parsed.role === 'superadmin') return 'superadmin';
+      if (saasRoles.includes(parsed.role)) return 'saas_overview';
       return parsed.role === 'admin' ? 'admin' : 'mobile';
     }
     return 'admin';
@@ -79,8 +95,10 @@ export default function App() {
       store.setSchoolId(userData.schoolId);
     }
     
-    if (userData.role === 'superadmin') {
-      setActiveTab('superadmin');
+    if (saasRoles.includes(userData.role)) {
+      if (userData.role === 'support') setActiveTab('saas_tenants');
+      else if (userData.role === 'devops') setActiveTab('saas_health');
+      else setActiveTab('saas_overview');
     } else if (userData.role === 'admin') {
       setActiveTab('admin');
     } else {
@@ -107,15 +125,27 @@ export default function App() {
   // 2. Super Admin Route
   if (isSuperAdminRoute) {
     if (!user) {
-       // Re-use login but tell it we are superadmin
        return <Login onLogin={handleLogin} isSuperAdminLogin={true} />;
     }
-    if (user.role !== 'superadmin') {
-       return <div className="p-8 text-center text-red-600 font-bold">Akses Ditolak. Anda bukan Super Admin.</div>;
+    if (!saasRoles.includes(user.role)) {
+       return <div className="p-8 text-center text-red-600 font-bold">Akses Ditolak. Anda bukan staf internal SaaS.</div>;
     }
     return (
-      <Layout activeTab="superadmin" setActiveTab={() => {}} user={user} onLogout={handleLogout}>
-        <SuperAdminDashboard />
+      <Layout activeTab={activeTab} setActiveTab={setActiveTab} user={user} onLogout={handleLogout}>
+        <div className="fade-in">
+          {activeTab === 'saas_overview' && <SuperAdminOverview user={user} />}
+          {activeTab === 'saas_tenants' && <SuperAdminTenants user={user} />}
+          {activeTab === 'saas_support' && <SuperAdminSupport user={user} />}
+          {activeTab === 'saas_billing' && <SuperAdminBilling user={user} />}
+          {activeTab === 'saas_broadcasts' && <SuperAdminBroadcasts user={user} />}
+          {activeTab === 'saas_analytics' && <SuperAdminAnalytics user={user} />}
+          {activeTab === 'saas_security' && <SuperAdminSecurity user={user} />}
+          {activeTab === 'saas_activity' && <SuperAdminActivity user={user} />}
+          {activeTab === 'saas_health' && <SuperAdminHealth user={user} />}
+          {activeTab === 'saas_integrations' && <SuperAdminIntegrations user={user} />}
+          {activeTab === 'saas_api' && <SuperAdminAPI user={user} />}
+          {activeTab === 'saas_settings' && <SuperAdminSettings user={user} />}
+        </div>
       </Layout>
     );
   }

@@ -27,7 +27,7 @@ export default function Login({ onLogin, schoolInfo, isSuperAdminLogin = false }
         .eq('password', password);
 
       if (isSuperAdminLogin) {
-        query = query.eq('role', 'superadmin');
+        query = query.in('role', ['superadmin', 'owner', 'manager', 'support', 'devops', 'finance']);
       } else {
         query = query.eq('role', 'admin').eq('school_id', schoolInfo.id);
       }
