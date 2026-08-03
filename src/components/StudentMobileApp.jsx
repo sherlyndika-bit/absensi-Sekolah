@@ -43,7 +43,9 @@ export default function StudentMobileApp({ loggedInStudent }) {
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const scanTimerRef = useRef(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [scanStatus, setScanStatus] = useState('');
   const [cameraError, setCameraError] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
 
@@ -129,6 +131,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const handleOpenFaceVerification = async () => {
     try {
       setCameraError(null);
+      setScanStatus('scanning');
       if (videoRef.current && videoRef.current.srcObject) {
         videoRef.current.srcObject.getTracks().forEach(track => track.stop());
       }
@@ -139,8 +142,19 @@ export default function StudentMobileApp({ loggedInStudent }) {
           videoRef.current.srcObject = stream;
         }
       }, 100);
+
+      // Auto-scan logic
+      scanTimerRef.current = setTimeout(() => {
+        setScanStatus('detected');
+        scanTimerRef.current = setTimeout(() => {
+          handleCapturePhoto();
+        }, 1000);
+      }, 2000);
+      
     } catch (err) {
       setCameraError("Kamera diblokir. Harap izinkan akses kamera browser Anda.");
+      setIsCameraOpen(false);
+      setScanStatus('');
       console.error(err);
     }
   };
@@ -174,6 +188,7 @@ export default function StudentMobileApp({ loggedInStudent }) {
       stream.getTracks().forEach(track => track.stop());
     }
     setIsCameraOpen(false);
+    setScanStatus('');
     setLivenessCompleted(true);
     setCapturedPhoto(photoDataUrl);
   };
@@ -334,13 +349,36 @@ export default function StudentMobileApp({ loggedInStudent }) {
               <div className="space-y-3">
                 <div className="relative w-full aspect-square bg-slate-900 rounded-lg overflow-hidden border-2 border-slate-300 shadow-inner">
                   <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover transform scale-x-[-1]" />
+                  {/* Scanner Overlay UI */}
+                  <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute inset-8 border-2 border-dashed border-white/50 rounded-[2rem]"></div>
+                    {scanStatus === 'scanning' && (
+                      <div className="absolute left-0 right-0 h-1 bg-blue-500/80 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
+                    )}
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                      <div className={`px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg transition-all ${
+                        scanStatus === 'scanning' ? 'bg-black/50 text-white border border-white/20' :
+                        scanStatus === 'detected' ? 'bg-emerald-500/90 text-white border border-emerald-400 scale-110' :
+                        'hidden'
+                      }`}>
+                        {scanStatus === 'scanning' ? 'Memindai Wajah...' : 'Wajah Terdeteksi! 📸'}
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
                 <button
-                  onClick={handleCapturePhoto}
-                  className="w-full py-3 text-white text-xs font-bold rounded-lg shadow-md flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-blue-700 to-blue-900 hover:from-blue-800 hover:to-blue-950 active:scale-[0.98]"
+                  onClick={() => {
+                    clearTimeout(scanTimerRef.current);
+                    if (videoRef.current && videoRef.current.srcObject) {
+                      videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+                    }
+                    setIsCameraOpen(false);
+                    setScanStatus('');
+                  }}
+                  className="w-full py-2.5 text-xs font-bold rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200 transition-all active:scale-95"
                 >
-                  <Camera className="w-4 h-4" /> AMBIL FOTO WAJAH
+                  BATALKAN SCAN
                 </button>
               </div>
             ) : livenessCompleted ? (
