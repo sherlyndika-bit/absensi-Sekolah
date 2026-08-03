@@ -4,6 +4,7 @@ import { Smartphone, MapPin, ShieldCheck, CheckCircle2, RefreshCw, Camera } from
 import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import * as faceapi from '@vladmandic/face-api';
+import StudentOnboarding from './StudentOnboarding';
 
 // Fix Leaflet Default Icon Issues
 const schoolIcon = new L.DivIcon({
@@ -47,7 +48,9 @@ export default function StudentMobileApp({ loggedInStudent }) {
   const scanTimerRef = useRef(null);
   const detectionIntervalRef = useRef(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [scanStatus, setScanStatus] = useState('');
+  const [scanStatus, setScanStatus] = useState(''); // loading, scanning, matched, unmatched
+  const [manualFallbackCount, setManualFallbackCount] = useState(0);
+  const [allowManualCapture, setAllowManualCapture] = useState(false);
   const [cameraError, setCameraError] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
 
@@ -134,10 +137,14 @@ export default function StudentMobileApp({ loggedInStudent }) {
     try {
       setCameraError(null);
       setScanStatus('loading');
+      setManualFallbackCount(0);
+      setAllowManualCapture(false);
       
       // Load model if not loaded
-      if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+      if (!faceapi.nets.tinyFaceDetector.isLoaded || !faceapi.nets.faceLandmark68TinyNet.isLoaded || !faceapi.nets.faceRecognitionNet.isLoaded) {
         await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+        await faceapi.nets.faceLandmark68TinyNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+        await faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
       }
 
       setScanStatus('scanning');
@@ -150,27 +157,52 @@ export default function StudentMobileApp({ loggedInStudent }) {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           
-          let detectCount = 0;
+          let matchCount = 0;
+          let unmatchCount = 0;
           clearInterval(detectionIntervalRef.current);
+          
           detectionIntervalRef.current = setInterval(async () => {
             if (videoRef.current && videoRef.current.readyState === 4) {
-              const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }));
+              const detection = await faceapi.detectSingleFace(
+                videoRef.current, 
+                new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 })
+              ).withFaceLandmarks(true).withFaceDescriptor();
               
               if (detection) {
-                detectCount++;
-                if (detectCount === 1) {
-                  setScanStatus('detected');
+                // Check Face Recognition Match
+                let isMatch = false;
+                if (loggedInStudent.faceDescriptor) {
+                  const enrolledDescriptor = new Float32Array(loggedInStudent.faceDescriptor);
+                  const distance = faceapi.euclideanDistance(detection.descriptor, enrolledDescriptor);
+                  isMatch = distance <= 0.55; // 0.55 is a strict/good threshold
+                } else {
+                  // Fallback if somehow they got here without a descriptor
+                  isMatch = true; 
                 }
-                if (detectCount >= 3) {
-                  clearInterval(detectionIntervalRef.current);
-                  handleCapturePhoto();
+
+                if (isMatch) {
+                  matchCount++;
+                  unmatchCount = 0;
+                  setScanStatus('matched');
+                  if (matchCount >= 2) {
+                    clearInterval(detectionIntervalRef.current);
+                    handleCapturePhoto();
+                  }
+                } else {
+                  unmatchCount++;
+                  matchCount = 0;
+                  setScanStatus('unmatched');
+                  if (unmatchCount >= 5) {
+                    setManualFallbackCount(prev => prev + 1);
+                    unmatchCount = 0;
+                  }
                 }
               } else {
-                detectCount = 0;
+                matchCount = 0;
                 setScanStatus('scanning');
               }
             }
-          }, 400);
+          }, 500);
         }
       }, 300);
       
@@ -251,8 +283,13 @@ export default function StudentMobileApp({ loggedInStudent }) {
     }, 800);
   };
 
+  // --- RENDER EARLY RETURN FOR ONBOARDING ---
+  if (!loggedInStudent || loggedInStudent.faceEnrollmentStatus === 'none' || loggedInStudent.faceEnrollmentStatus === 'rejected') {
+    return <StudentOnboarding activeStudent={loggedInStudent} />;
+  }
+
   return (
-    <div className="max-w-md mx-auto space-y-4">
+    <div className="max-w-md mx-auto space-y-4 pb-24">
       
       <div className="clean-card p-5 space-y-4">
         
@@ -379,20 +416,52 @@ export default function StudentMobileApp({ loggedInStudent }) {
                     {scanStatus === 'scanning' && (
                       <div className="absolute left-0 right-0 h-1 bg-blue-500/80 shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-[scan_2s_ease-in-out_infinite]"></div>
                     )}
+                    {scanStatus === 'unmatched' && (
+                      <div className="absolute inset-0 border-4 border-rose-500/80 rounded-[2rem] transition-all"></div>
+                    )}
                     <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                       <div className={`px-4 py-1.5 rounded-full text-xs font-bold backdrop-blur-md shadow-lg transition-all ${
                         scanStatus === 'loading' ? 'bg-amber-500/90 text-white border border-amber-400' :
+                        scanStatus === 'unmatched' ? 'bg-rose-500/90 text-white border border-rose-400 scale-105' :
+                        scanStatus === 'matched' ? 'bg-emerald-500/90 text-white border border-emerald-400 scale-110' :
                         scanStatus === 'scanning' ? 'bg-black/50 text-white border border-white/20' :
-                        scanStatus === 'detected' ? 'bg-emerald-500/90 text-white border border-emerald-400 scale-110' :
                         'hidden'
                       }`}>
                         {scanStatus === 'loading' ? 'Memuat AI Model...' :
-                         scanStatus === 'scanning' ? 'Arahkan Wajah ke Kamera...' : 'Wajah Terdeteksi! 📸'}
+                         scanStatus === 'unmatched' ? 'Wajah Tidak Dikenali! ❌' :
+                         scanStatus === 'matched' ? 'Wajah Cocok! 📸' :
+                         scanStatus === 'scanning' ? 'Arahkan Wajah ke Kamera...' : ''}
                       </div>
                     </div>
                   </div>
                 </div>
                 <canvas ref={canvasRef} className="hidden" />
+
+                {manualFallbackCount >= 2 && !allowManualCapture && (
+                  <button
+                    onClick={() => {
+                      setAllowManualCapture(true);
+                      clearInterval(detectionIntervalRef.current);
+                      setScanStatus('scanning');
+                    }}
+                    className="w-full py-2 text-xs font-bold rounded-lg bg-orange-100 text-orange-700 border border-orange-200 shadow-sm"
+                  >
+                    Gagal Identifikasi? Ajukan Absen Manual
+                  </button>
+                )}
+
+                {allowManualCapture && (
+                  <button
+                    onClick={() => {
+                      clearInterval(detectionIntervalRef.current);
+                      handleCapturePhoto();
+                    }}
+                    className="w-full py-3 text-white text-xs font-bold rounded-lg shadow-md flex items-center justify-center gap-2 transition-all bg-gradient-to-r from-blue-600 to-blue-800"
+                  >
+                    <Camera className="w-4 h-4" /> AMBIL FOTO PAKSA
+                  </button>
+                )}
+
                 <button
                   onClick={() => {
                     clearInterval(detectionIntervalRef.current);

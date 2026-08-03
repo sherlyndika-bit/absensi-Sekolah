@@ -131,16 +131,26 @@ class SupabaseDataStore {
       // Fetch Users/Students
       const { data: usersData } = await supabase.from('users').select('*').order('created_at', { ascending: true });
       if (usersData) {
-        this.students = usersData.map(u => ({
-          id: u.id,
-          nisn: u.nisn,
-          name: u.name,
-          classId: u.class_id,
-          parentPhone: u.parent_phone,
-          parentName: u.parent_name,
-          faceEnrollmentStatus: u.face_enrollment_status,
-          photoUrl: u.photo_url
-        }));
+        this.students = usersData.map(u => {
+          let finalPhotoUrl = u.photo_url;
+          let faceDescriptor = null;
+          if (u.photo_url && u.photo_url.includes('|||')) {
+            const parts = u.photo_url.split('|||');
+            finalPhotoUrl = parts[0];
+            try { faceDescriptor = JSON.parse(parts[1]); } catch(e) {}
+          }
+          return {
+            id: u.id,
+            nisn: u.nisn,
+            name: u.name,
+            classId: u.class_id,
+            parentPhone: u.parent_phone,
+            parentName: u.parent_name,
+            faceEnrollmentStatus: u.face_enrollment_status,
+            photoUrl: finalPhotoUrl,
+            faceDescriptor: faceDescriptor
+          };
+        });
       }
 
       // Fetch Attendances
@@ -266,18 +276,24 @@ class SupabaseDataStore {
   }
 
   // Submit Self Enrollment Face
-  async submitFaceEnrollment(studentId, photos) {
+  async submitFaceEnrollment(studentId, photos, descriptorArray = null) {
     const student = this.students.find(s => s.id === studentId);
     if (student) {
+      let finalUrl = photos && photos.front ? photos.front : null;
+      if (finalUrl && descriptorArray) {
+        finalUrl = `${finalUrl}|||${JSON.stringify(descriptorArray)}`;
+      }
+
       student.faceEnrollmentStatus = "pending";
       if (photos && photos.front) {
         student.photoUrl = photos.front;
+        student.faceDescriptor = descriptorArray;
       }
       this.notify();
 
       const updatePayload = { face_enrollment_status: 'pending' };
-      if (photos && photos.front) {
-        updatePayload.photo_url = photos.front;
+      if (finalUrl) {
+        updatePayload.photo_url = finalUrl;
       }
 
       const { error } = await supabase.from('users').update(updatePayload).eq('id', studentId);

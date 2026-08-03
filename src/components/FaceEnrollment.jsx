@@ -20,6 +20,7 @@ export default function FaceEnrollment() {
   const canvasRef = useRef(null);
   const scanTimerRef = useRef(null);
   const detectionIntervalRef = useRef(null);
+  const faceDescriptorRef = useRef(null);
 
   useEffect(() => {
     return store.subscribe((newState) => {
@@ -49,8 +50,10 @@ export default function FaceEnrollment() {
     setScanStatus('loading');
     
     try {
-      if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+      if (!faceapi.nets.tinyFaceDetector.isLoaded || !faceapi.nets.faceLandmark68TinyNet.isLoaded || !faceapi.nets.faceRecognitionNet.isLoaded) {
         await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+        await faceapi.nets.faceLandmark68TinyNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+        await faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
       }
 
       setScanStatus('scanning');
@@ -64,7 +67,10 @@ export default function FaceEnrollment() {
           clearInterval(detectionIntervalRef.current);
           detectionIntervalRef.current = setInterval(async () => {
             if (videoRef.current && videoRef.current.readyState === 4) {
-              const detection = await faceapi.detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 }));
+              const detection = await faceapi.detectSingleFace(
+                videoRef.current, 
+                new faceapi.TinyFaceDetectorOptions({ scoreThreshold: 0.5 })
+              ).withFaceLandmarks(true).withFaceDescriptor();
               
               if (detection) {
                 detectCount++;
@@ -73,6 +79,7 @@ export default function FaceEnrollment() {
                 }
                 if (detectCount >= 3) {
                   clearInterval(detectionIntervalRef.current);
+                  faceDescriptorRef.current = Array.from(detection.descriptor);
                   executeCapture();
                 }
               } else {
@@ -130,17 +137,24 @@ export default function FaceEnrollment() {
     setSuccessMessage(null);
   };
 
-  const handleSubmitEnrollment = () => {
+  const handleSaveToDatabase = async () => {
     if (!capturedPhoto) {
-      alert("Harap scan wajah terlebih dahulu.");
+      setErrorMessage("Harap pindai wajah terlebih dahulu sebelum menyimpan.");
       return;
     }
 
-    // Directly approve since this is now an Admin-only tool
-    store.submitFaceEnrollment(selectedStudentId, { front: capturedPhoto }).then(() => {
-      store.updateEnrollmentStatus(selectedStudentId, 'approved');
-    });
-    setSuccessMessage("Wajah Siswa Berhasil Disimpan & Disetujui!");
+    try {
+      await store.submitFaceEnrollment(selectedStudentId, { front: capturedPhoto }, faceDescriptorRef.current);
+      await store.updateEnrollmentStatus(selectedStudentId, 'approved');
+      setSuccessMessage("Wajah berhasil didaftarkan dan disetujui!");
+      
+      setTimeout(() => {
+        setSuccessMessage(null);
+        setCapturedPhoto(null);
+      }, 3000);
+    } catch (err) {
+      setErrorMessage("Terjadi kesalahan saat menyimpan ke database.");
+    }
   };
 
   if (data.students.length === 0) {
@@ -271,7 +285,7 @@ export default function FaceEnrollment() {
         {/* Submit */}
         <div className="pt-2">
           <button
-            onClick={handleSubmitEnrollment}
+            onClick={handleSaveToDatabase}
             disabled={!capturedPhoto}
             className={`w-full py-3.5 rounded-lg font-extrabold text-xs transition-all flex items-center justify-center gap-2 uppercase tracking-wide ${
               capturedPhoto
