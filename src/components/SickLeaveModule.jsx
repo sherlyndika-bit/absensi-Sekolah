@@ -43,9 +43,19 @@ export default function SickLeaveModule({ loggedInStudent }) {
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+      const MAX_WIDTH = 640;
+      let targetWidth = video.videoWidth;
+      let targetHeight = video.videoHeight;
+      if (targetWidth > MAX_WIDTH) {
+        targetHeight = Math.floor(targetHeight * (MAX_WIDTH / targetWidth));
+        targetWidth = MAX_WIDTH;
+      }
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const photoDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+      const photoDataUrl = canvas.toDataURL('image/jpeg', 0.6);
       
       const stream = video.srcObject;
       if (stream) {
