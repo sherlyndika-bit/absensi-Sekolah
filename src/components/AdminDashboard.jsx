@@ -39,19 +39,29 @@ export default function AdminDashboard() {
   const [data, setData] = useState(store.getState());
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedClassFilter, setSelectedClassFilter] = useState('ALL');
 
   useEffect(() => {
     return store.subscribe((newState) => setData(newState));
   }, []);
 
-  const totalStudents = data.students.length;
-  const totalHadir = data.attendances.filter(a => a.status === 'Hadir').length;
-  const totalTerlambat = data.attendances.filter(a => a.status === 'Terlambat').length;
-  const totalSakit = data.leaveRequests.filter(r => r.status === 'approved').length;
-  const totalAlfa = totalStudents - (totalHadir + totalTerlambat + totalSakit);
+  const uniqueClasses = Array.from(new Set(data.students.map(s => s.classId))).sort();
+  const schoolName = data.schoolInfo?.name || "Memuat...";
+  const schoolLevel = data.schoolInfo?.level || "-";
 
-  const pendingEnrollments = data.students.filter(s => s.faceEnrollmentStatus === 'pending');
-  const pendingLeaves = data.leaveRequests.filter(r => r.status === 'pending');
+  // Filter Data by Class
+  const filteredStudents = selectedClassFilter === 'ALL' ? data.students : data.students.filter(s => s.classId === selectedClassFilter);
+  const filteredAttendances = selectedClassFilter === 'ALL' ? data.attendances : data.attendances.filter(a => a.classId === selectedClassFilter);
+  const filteredLeaves = selectedClassFilter === 'ALL' ? data.leaveRequests : data.leaveRequests.filter(r => r.classId === selectedClassFilter);
+
+  const totalStudents = filteredStudents.length;
+  const totalHadir = filteredAttendances.filter(a => a.status === 'Hadir').length;
+  const totalTerlambat = filteredAttendances.filter(a => a.status === 'Terlambat').length;
+  const totalSakit = filteredLeaves.filter(r => r.status === 'approved').length;
+  const totalAlfa = Math.max(0, totalStudents - (totalHadir + totalTerlambat + totalSakit));
+
+  const pendingEnrollments = filteredStudents.filter(s => s.faceEnrollmentStatus === 'pending');
+  const pendingLeaves = filteredLeaves.filter(r => r.status === 'pending');
 
   const handleApproveEnrollment = (studentId) => store.updateEnrollmentStatus(studentId, 'approved');
   const handleRejectEnrollment = (studentId) => store.updateEnrollmentStatus(studentId, 'rejected');
@@ -89,8 +99,33 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Ringkasan Statistik Presensi */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="max-w-6xl mx-auto space-y-6">
+      
+      {/* SaaS School Banner */}
+      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
+            <Building2 className="w-7 h-7 text-blue-300" />
+            Dasbor Admin {schoolName}
+          </h1>
+          <p className="text-blue-200 text-sm mt-1">Tingkat: <span className="font-bold text-white bg-blue-800/50 px-2 py-0.5 rounded-md">{schoolLevel}</span> | Ruang Kerja SaaS Aktif</p>
+        </div>
+        <div className="flex items-center gap-3 bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
+          <span className="text-xs font-bold text-blue-100 pl-2">Filter Kelas:</span>
+          <select 
+            value={selectedClassFilter} 
+            onChange={(e) => setSelectedClassFilter(e.target.value)}
+            className="bg-white text-slate-800 text-sm font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="ALL">Semua Kelas</option>
+            {uniqueClasses.map(c => (
+              <option key={c} value={c}>Kelas {c}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         
         <div className="clean-card p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
@@ -132,16 +167,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="clean-card p-4 flex items-center gap-3 col-span-2 md:col-span-1">
-          <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
-            <AlertCircle className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Belum Absen (Alfa)</p>
-            <h3 className="text-xl font-bold text-rose-600">{totalAlfa < 0 ? 0 : totalAlfa}</h3>
-          </div>
-        </div>
-
       </div>
 
       {/* Main Content Grid */}
@@ -163,29 +188,29 @@ export default function AdminDashboard() {
             <table className="w-full text-left text-xs text-slate-600 whitespace-nowrap">
               <thead className="bg-slate-50 uppercase font-semibold text-slate-500 border-b border-slate-200">
                 <tr>
-                  <th className="p-3">Siswa</th>
-                  <th className="p-3">Kelas</th>
-                  <th className="p-3">Waktu</th>
-                  <th className="p-3">Metode</th>
-                  <th className="p-3">Jarak GPS</th>
-                  <th className="p-3">WA Ortu</th>
-                  <th className="p-3 text-center">Foto</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100">Tanggal</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100">Jam</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100">Metode</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100">Jarak Validasi</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100 text-center">WA Ortu</th>
+                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100 text-center">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.attendances.length === 0 ? (
+                {filteredAttendances.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="p-8 text-center text-slate-400">Belum ada riwayat absensi.</td>
+                    <td colSpan="8" className="p-8 text-center text-slate-400">Belum ada riwayat absensi.</td>
                   </tr>
                 ) : (
-                  data.attendances.map((att) => (
+                  filteredAttendances.map((att) => (
                     <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="p-3 font-semibold text-slate-900">{att.studentName}</td>
                       <td className="p-3 text-slate-500">{att.classId}</td>
+                      <td className="p-3 text-slate-600">{att.dateString || '-'}</td>
                       <td className="p-3 font-mono font-medium text-blue-900">{att.timeStr}</td>
                       <td className="p-3">
                         <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
-                          {att.method === 'mobile_liveness' ? 'HP Siswa' : att.method === 'smart_kiosk' ? 'Kiosk Gate' : 'IoT Gate'}
+                          {att.method === 'mobile_liveness' ? 'HP Siswa' : att.method === 'smart_kiosk' ? 'Kiosk Gate' : 'GPS + Face'}
                         </span>
                       </td>
                       <td className="p-3">
@@ -207,7 +232,7 @@ export default function AdminDashboard() {
                           )}
                         </div>
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 text-center">
                         <span className="clean-badge-green px-2 py-0.5 rounded text-[11px] inline-flex items-center gap-1">
                           <Send className="w-3 h-3" /> Terkirim
                         </span>
@@ -217,7 +242,7 @@ export default function AdminDashboard() {
                           onClick={() => setSelectedPhoto(att.photoProofUrl)}
                           className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium inline-flex items-center gap-1"
                         >
-                          <Eye className="w-3 h-3" /> Lihat
+                          <Eye className="w-3 h-3" /> Lihat Foto
                         </button>
                       </td>
                     </tr>

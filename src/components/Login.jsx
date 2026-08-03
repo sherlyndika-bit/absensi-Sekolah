@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { School, User, Lock, Mail, ChevronRight, AlertCircle } from 'lucide-react';
-import { store } from '../firebase/services';
+import { School, User, Lock, Mail, ChevronRight, AlertCircle, ArrowLeft } from 'lucide-react';
+import supabase from '../supabase/config';
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onBack }) {
   const [activeTab, setActiveTab] = useState('student'); // 'student' or 'admin'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -14,49 +14,102 @@ export default function Login({ onLogin }) {
   // Student states
   const [nisn, setNisn] = useState('');
 
-  const handleAdminLogin = (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    // Dummy authentication logic before Supabase is connected
-    setTimeout(() => {
-      if (email === 'admin@sekolah.com' && password === 'admin123') {
-        onLogin({ role: 'admin', name: 'Admin Sekolah' });
-      } else {
-        setError('Email atau password admin salah.');
+    try {
+      // In this SaaS demo, we registered Admin with nisn=phone and password
+      const { data, error } = await supabase
+        .from('users')
+        .select('*, schools(*)')
+        .eq('nisn', email)
+        .eq('password', password)
+        .eq('role', 'admin')
+        .single();
+
+      if (error || !data) {
+        throw new Error('Username atau password admin salah.');
       }
+
+      onLogin({ 
+        id: data.id,
+        role: 'admin', 
+        name: data.name,
+        schoolId: data.school_id,
+        schoolName: data.schools?.name,
+        schoolLevel: data.schools?.level
+      });
+    } catch (err) {
+      setError(err.message || 'Terjadi kesalahan saat login.');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
-  const handleStudentLogin = (e) => {
+  const handleStudentLogin = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    setTimeout(() => {
-      const data = store.getState();
-      const student = data.students.find(s => String(s.nisn) === String(nisn));
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('*, schools(*)')
+        .eq('nisn', nisn)
+        .eq('role', 'student')
+        .single();
       
-      if (student) {
-        onLogin({ role: 'student', ...student });
-      } else {
-        setError('Siswa dengan NISN tersebut tidak ditemukan.');
+      if (error || !data) {
+        throw new Error('Siswa dengan NISN tersebut tidak ditemukan.');
       }
+
+      // Convert photo_url mapping to be compatible with how services.js parses it
+      let finalPhotoUrl = data.photo_url;
+      let faceDescriptor = null;
+      if (data.photo_url && data.photo_url.includes('|||')) {
+        const parts = data.photo_url.split('|||');
+        finalPhotoUrl = parts[0];
+        try { faceDescriptor = JSON.parse(parts[1]); } catch(e) {}
+      }
+
+      onLogin({ 
+        role: 'student', 
+        id: data.id,
+        nisn: data.nisn,
+        name: data.name,
+        classId: data.class_id,
+        parentPhone: data.parent_phone,
+        parentName: data.parent_name,
+        faceEnrollmentStatus: data.face_enrollment_status || 'none',
+        photoUrl: finalPhotoUrl,
+        faceDescriptor: faceDescriptor,
+        schoolId: data.school_id,
+        schoolName: data.schools?.name,
+        schoolLevel: data.schools?.level
+      });
+    } catch (err) {
+      setError(err.message || 'Terjadi kesalahan saat login.');
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
       
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8">
-        <div className="mx-auto w-16 h-16 bg-blue-900 rounded-2xl shadow-lg flex items-center justify-center text-white mb-4">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-8 relative">
+        {onBack && (
+          <button onClick={onBack} className="absolute left-0 top-0 p-2 text-slate-400 hover:bg-slate-200 rounded-full transition-colors">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        )}
+        <div className="mx-auto w-16 h-16 bg-blue-900 rounded-2xl shadow-lg flex items-center justify-center text-white mb-4 mt-8 sm:mt-0">
           <School className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Sistem Presensi Digital</h2>
-        <p className="text-sm text-slate-500 mt-2">SMA Negeri 1 Jakarta</p>
+        <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Portal AbsenPro SaaS</h2>
+        <p className="text-sm text-slate-500 mt-2">Login ke Ruang Kerja Sekolah Anda</p>
       </div>
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -121,18 +174,22 @@ export default function Login({ onLogin }) {
           ) : (
             <form onSubmit={handleAdminLogin} className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Email Admin</label>
-                <div className="relative">
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700">
+                  Username (No. HP)
+                </label>
+                <div className="mt-1 relative rounded-md shadow-sm">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-slate-400" />
+                    <User className="h-5 w-5 text-slate-400" />
                   </div>
                   <input
-                    type="email"
+                    id="email"
+                    name="email"
+                    type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@sekolah.com"
-                    className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-900 focus:border-blue-900 sm:text-sm font-medium text-slate-900"
+                    className="block w-full pl-10 pr-3 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all"
+                    placeholder="Masukkan Nomor HP Admin"
                   />
                 </div>
               </div>

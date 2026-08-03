@@ -6,13 +6,19 @@ import StudentMobileApp from './components/StudentMobileApp';
 import FaceEnrollment from './components/FaceEnrollment';
 import SickLeaveModule from './components/SickLeaveModule';
 import StudentManagement from './components/StudentManagement';
-import Login from './components/Login';
+import LandingPage from './components/LandingPage';
+import { store } from './firebase/services';
 import { School, Github, Database } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('absensi_user_session');
-    return savedUser ? JSON.parse(savedUser) : null;
+    if (savedUser) {
+      const parsed = JSON.parse(savedUser);
+      store.setSchoolId(parsed.schoolId);
+      return parsed;
+    }
+    return null;
   });
   
   const [activeTab, setActiveTab] = useState(() => {
@@ -27,6 +33,8 @@ export default function App() {
   const handleLogin = (userData) => {
     setUser(userData);
     localStorage.setItem('absensi_user_session', JSON.stringify(userData));
+    store.setSchoolId(userData.schoolId);
+    
     if (userData.role === 'admin') {
       setActiveTab('admin');
     } else {
@@ -40,7 +48,7 @@ export default function App() {
   };
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <LandingPage onLogin={handleLogin} />;
   }
 
   return (

@@ -5,6 +5,17 @@ import { Users, Plus, Trash2, Edit2, Check, X, ShieldAlert } from 'lucide-react'
 export default function StudentManagement() {
   const [data, setData] = useState(store.getState());
 
+  const getAvailableClasses = () => {
+    const level = data.schoolInfo?.level || '';
+    if (level === 'SD') return ['1A', '1B', '2A', '2B', '3A', '3B', '4A', '4B', '5A', '5B', '6A', '6B'];
+    if (level === 'SMP') return ['7A', '7B', '8A', '8B', '9A', '9B'];
+    if (level === 'SMA') return ['10-IPA', '10-IPS', '11-IPA', '11-IPS', '12-IPA', '12-IPS'];
+    if (level === 'SMK') return ['10-RPL', '10-TKJ', '11-RPL', '11-TKJ', '12-RPL', '12-TKJ'];
+    return ['Kelas A', 'Kelas B']; // Default fallback
+  };
+
+  const availableClasses = getAvailableClasses();
+
   useEffect(() => {
     return store.subscribe((newState) => setData(newState));
   }, []);
@@ -90,7 +101,17 @@ export default function StudentManagement() {
             </div>
             <div>
               <label className="block text-slate-600 mb-1">Kelas</label>
-              <input type="text" required value={classId} onChange={e => setClassId(e.target.value)} className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:border-blue-900" placeholder="10-IPA-1" />
+              <select 
+                required 
+                value={classId} 
+                onChange={e => setClassId(e.target.value)} 
+                className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:border-blue-900 bg-white"
+              >
+                <option value="" disabled>Pilih Kelas</option>
+                {availableClasses.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-slate-600 mb-1">Nama Orang Tua</label>

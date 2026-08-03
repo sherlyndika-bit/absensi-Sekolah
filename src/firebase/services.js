@@ -21,26 +21,41 @@ class SupabaseDataStore {
       centerLongitude: DEFAULT_GEOFENCE.center_longitude,
       allowedRadiusMeters: DEFAULT_GEOFENCE.allowed_radius_meters
     };
+    this.schoolId = null;
+    this.schoolInfo = null;
     this.listeners = [];
     this.initialized = false;
-    this.initData();
     
-    // Auto-poll Supabase every 3 seconds for real-time sync across devices
+    // Auto-poll Supabase every 3 seconds
     setInterval(() => {
-      this.fetchSilentUpdates();
+      if (this.schoolId) {
+        this.fetchSilentUpdates();
+      }
     }, 3000);
   }
 
+  setSchoolId(schoolId) {
+    this.schoolId = schoolId;
+    this.fetchSilentUpdates();
+  }
+
   async fetchSilentUpdates() {
+    if (!this.schoolId) return;
+    
     try {
-      const [geoRes, usersRes, attRes, leaveRes] = await Promise.all([
-        supabase.from('geofence_settings').select('*').single(),
-        supabase.from('users').select('*').order('created_at', { ascending: true }),
-        supabase.from('attendances').select('*').order('created_at', { ascending: false }).limit(50),
-        supabase.from('sick_leave_requests').select('*').order('submitted_at', { ascending: false })
+      const [geoRes, usersRes, attRes, leaveRes, schoolRes] = await Promise.all([
+        supabase.from('geofence_settings').select('*').eq('school_id', this.schoolId).single(),
+        supabase.from('users').select('*').eq('school_id', this.schoolId).order('created_at', { ascending: true }),
+        supabase.from('attendances').select('*').eq('school_id', this.schoolId).order('created_at', { ascending: false }).limit(50),
+        supabase.from('sick_leave_requests').select('*').eq('school_id', this.schoolId).order('submitted_at', { ascending: false }),
+        supabase.from('schools').select('*').eq('id', this.schoolId).single()
       ]);
 
       let changed = false;
+
+      if (schoolRes.data) {
+        this.schoolInfo = schoolRes.data;
+      }
 
       if (geoRes.data) {
         this.geofence = {
@@ -229,10 +244,11 @@ class SupabaseDataStore {
 
   getState() {
     return {
-      students: [...this.students],
-      attendances: [...this.attendances],
-      leaveRequests: [...this.leaveRequests],
-      geofence: { ...this.geofence },
+      students: this.students,
+      attendances: this.attendances,
+      leaveRequests: this.leaveRequests,
+      geofence: this.geofence,
+      schoolInfo: this.schoolInfo,
       initialized: this.initialized
     };
   }
@@ -253,7 +269,8 @@ class SupabaseDataStore {
       liveness_challenge: record.gpsCoordinates ? JSON.stringify(record.gpsCoordinates) : null,
       liveness_passed: record.livenessPassed,
       photo_proof_url: record.photoProofUrl,
-      wa_notif_sent: true
+      wa_notif_sent: true,
+      school_id: this.schoolId
     };
 
     // Optimistic UI update
@@ -337,7 +354,8 @@ class SupabaseDataStore {
       medical_note_url: request.medicalNoteUrl,
       captured_direct_from_camera: true,
       status: 'pending',
-      submitted_at: new Date().toISOString()
+      submitted_at: new Date().toISOString(),
+      school_id: this.schoolId
     };
 
     const uiReq = {
@@ -382,12 +400,12 @@ class SupabaseDataStore {
       center_latitude: this.geofence.centerLatitude,
       center_longitude: this.geofence.centerLongitude,
       allowed_radius_meters: this.geofence.allowedRadiusMeters
-    }).eq('id', 'school_gate');
+    }).eq('school_id', this.schoolId);
   }
 
   // --- Student CRUD ---
   async addStudent(studentData) {
-    const id = `STD${Date.now().toString().slice(-4)}`;
+    const id = `STU-${Date.now()}`;
     const newStudent = {
       id: id,
       nisn: studentData.nisn,
@@ -396,7 +414,9 @@ class SupabaseDataStore {
       parent_phone: studentData.parentPhone,
       parent_name: studentData.parentName,
       face_enrollment_status: 'none',
-      photo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/User_icon_2.svg/192px-User_icon_2.svg.png'
+      photo_url: '',
+      role: 'student',
+      school_id: this.schoolId
     };
 
     const uiStudent = {
