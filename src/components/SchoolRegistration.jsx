@@ -136,8 +136,11 @@ export default function SchoolRegistration({ onBack, onLogin }) {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-600 block mb-1.5">Alamat URL Subdomain</label>
+                <label className="text-xs font-bold text-slate-600 block mb-1.5">Alamat URL Portal Sekolah</label>
                 <div className="flex bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+                  <div className="bg-slate-100 border-r border-slate-200 px-4 py-3 text-sm font-semibold text-slate-500 flex items-center">
+                    absenpro.com/
+                  </div>
                   <input 
                     type="text" 
                     required
@@ -146,11 +149,8 @@ export default function SchoolRegistration({ onBack, onLogin }) {
                     onChange={e => setFormData({...formData, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})}
                     className="w-full bg-transparent px-4 py-3 text-sm font-medium focus:outline-none"
                   />
-                  <div className="bg-slate-100 border-l border-slate-200 px-4 py-3 text-sm font-semibold text-slate-500 flex items-center">
-                    .absenpro.com
-                  </div>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">Siswa akan login melalui URL ini nanti.</p>
+                <p className="text-[11px] text-slate-400 mt-1">Siswa akan login melalui URL ini nanti (contoh: absenpro.com/sman1nusantara/portal).</p>
               </div>
 
               <div>

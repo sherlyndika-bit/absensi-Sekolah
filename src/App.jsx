@@ -18,13 +18,15 @@ export default function App() {
   const [tenantNotFound, setTenantNotFound] = useState(false);
 
   useEffect(() => {
-    const hostname = window.location.hostname;
-    const parts = hostname.split('.');
+    // Kita ubah ke sistem URL Path: /sekolah/portal
+    // Contoh pathname: /sman1toapaya/portal atau /sman1toapaya
+    const pathname = window.location.pathname;
+    const parts = pathname.split('/').filter(Boolean); // Hapus empty string
     
     let slug = null;
-    if (hostname.includes('localhost') && parts.length > 1 && parts[0] !== 'www') {
-       slug = parts[0];
-    } else if (parts.length >= 3 && parts[0] !== 'www') {
+    
+    // Jika path-nya seperti /namasekolah atau /namasekolah/portal
+    if (parts.length > 0 && parts[0] !== 'daftar' && parts[0] !== 'pricing') {
        slug = parts[0];
     }
 
@@ -97,10 +99,10 @@ export default function App() {
         <h1 className="text-6xl font-black text-slate-800 mb-2">404</h1>
         <h2 className="text-xl font-bold text-slate-700 mb-2">Sekolah Tidak Terdaftar</h2>
         <p className="text-slate-500 mb-8 max-w-md">
-          Alamat URL <b>{tenantSlug}</b> tidak terdaftar di sistem kami. Pastikan Anda mengetik alamat sekolah dengan benar.
+          Alamat URL sekolah <b>/{tenantSlug}</b> tidak terdaftar di sistem kami.
         </p>
         <button 
-          onClick={() => window.location.href = `http://${window.location.hostname.replace(`${tenantSlug}.`, '')}`} 
+          onClick={() => window.location.href = '/'} 
           className="px-6 py-3 bg-blue-600 hover:bg-blue-700 transition-colors text-white rounded-xl font-bold"
         >
           Kembali ke Beranda Utama
@@ -112,8 +114,7 @@ export default function App() {
   // 3. Root Domain (Landing Page)
   if (!tenantSlug) {
     return <LandingPage onLogin={() => {
-      // If someone registers, we redirect them to their new subdomain portal
-      alert("Registrasi Berhasil! Silakan buka URL Subdomain Anda untuk login.");
+      alert("Registrasi Berhasil! Silakan masukkan URL yang Anda buat tadi di address bar (Contoh: /sekolahku/portal).");
     }} />;
   }
 
