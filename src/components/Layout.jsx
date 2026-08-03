@@ -16,6 +16,7 @@ export default function Layout({ activeTab, setActiveTab, user, onLogout, childr
     { id: 'kiosk', label: 'Smart Kiosk', icon: Tablet, roles: ['admin'] },
     { id: 'enrollment', label: 'Daftar Wajah', icon: UserCheck, roles: ['admin'] },
     { id: 'sick_leave', label: 'Izin Sakit', icon: FileText, roles: ['student'] },
+    { id: 'superadmin', label: 'SaaS Dashboard', icon: LayoutDashboard, roles: ['superadmin'] },
   ];
 
   const visibleNavItems = navItems.filter(item => user && item.roles.includes(user.role));
@@ -41,7 +42,9 @@ export default function Layout({ activeTab, setActiveTab, user, onLogout, childr
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-900 truncate pr-2">{user?.name}</span>
               <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                user?.role === 'admin' ? 'bg-blue-100 text-blue-800' : 'bg-emerald-100 text-emerald-800'
+                user?.role === 'superadmin' ? 'bg-purple-100 text-purple-800' :
+                user?.role === 'admin' ? 'bg-blue-100 text-blue-800' : 
+                'bg-emerald-100 text-emerald-800'
               }`}>
                 {user?.role}
               </span>
