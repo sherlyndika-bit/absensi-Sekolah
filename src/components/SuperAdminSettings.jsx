@@ -3,7 +3,7 @@ import { Settings, Shield, UserPlus, Key, Save } from 'lucide-react';
 
 export default function SuperAdminSettings({ user }) {
   const [activeTab, setActiveTab] = useState('general');
-  const isAuthorized = user?.role === 'owner' || user?.role === 'manager';
+  const isAuthorized = user?.role === 'superadmin' || user?.role === 'owner' || user?.role === 'manager';
 
   return (
     <div className="p-4 sm:p-6 font-sans max-w-7xl mx-auto">
