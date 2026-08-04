@@ -22,21 +22,35 @@ export default function SchoolRegistration({ onBack, onLogin }) {
     setError(null);
 
     try {
-      // 1. Insert School
+      // 1. Cek apakah slug sudah dipakai sekolah lain
+      const { data: existing } = await supabase
+        .from('schools')
+        .select('id')
+        .eq('slug', formData.slug.toLowerCase())
+        .single();
+
+      if (existing) {
+        setError(`Alamat URL "${formData.slug}" sudah digunakan sekolah lain. Pilih nama lain.`);
+        setIsLoading(false);
+        return;
+      }
+
+      // 2. Insert School
       const { data: schoolData, error: schoolError } = await supabase
         .from('schools')
         .insert([{ 
           name: formData.schoolName, 
           slug: formData.slug.toLowerCase(),
           level: formData.level,
-          package_plan: formData.packagePlan
+          package_plan: formData.packagePlan,
+          status: 'active'
         }])
         .select()
         .single();
       
       if (schoolError) throw schoolError;
 
-      // 2. Insert Admin User for that school
+      // 3. Insert Admin User (class_id = null karena admin tidak punya kelas)
       const adminId = `admin_${Date.now()}`;
       const { error: userError } = await supabase
         .from('users')
@@ -45,13 +59,12 @@ export default function SchoolRegistration({ onBack, onLogin }) {
           name: formData.adminName,
           role: 'admin',
           parent_phone: formData.adminPhone,
+          phone: formData.adminPhone,
           school_id: schoolData.id,
-          // We cheat here by storing password in a custom field for demo, 
-          // but for this SaaS demo, we assume login relies on parent_phone or NISN matching.
-          // Since it's admin, they will login with parent_phone as NISN and password as password?
-          // Actually, our Login.jsx uses NISN and Password. Let's set NISN = adminPhone for login.
-          nisn: formData.adminPhone, // Use phone as username
-          password: formData.adminPassword
+          class_id: null,
+          nisn: formData.adminPhone,
+          password: formData.adminPassword,
+          enrollment_status: 'approved'
         }]);
 
       if (userError) throw userError;
@@ -71,8 +84,10 @@ export default function SchoolRegistration({ onBack, onLogin }) {
       }, 2000);
 
     } catch (err) {
-      console.error(err);
-      setError("Pendaftaran gagal. Pastikan database Anda sudah memiliki tabel 'schools' sesuai skema SaaS.");
+      console.error('Registration error:', err);
+      // Tampilkan pesan error asli dari Supabase, bukan pesan generik
+      const msg = err?.message || err?.details || JSON.stringify(err);
+      setError(`Pendaftaran gagal: ${msg}`);
     } finally {
       setIsLoading(false);
     }
