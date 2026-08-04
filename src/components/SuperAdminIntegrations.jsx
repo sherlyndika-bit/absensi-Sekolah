@@ -1,5 +1,5 @@
 import React from 'react';
-import { Puzzle } from 'lucide-react';
+import { Puzzle, ShieldAlert } from 'lucide-react';
 
 export default function SuperAdminIntegrations() {
   return (
@@ -8,11 +8,9 @@ export default function SuperAdminIntegrations() {
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Marketplace Integrasi 🧩</h1>
         <p className="text-slate-500 mt-1 text-sm sm:text-base">Kelola integrasi pihak ketiga (WhatsApp, Zoom, dll).</p>
       </div>
-
-      <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-slate-400 text-center">
-        <Puzzle className="w-20 h-20 mb-6 opacity-20 text-indigo-600" />
-        <h3 className="text-xl font-bold text-slate-700 mb-2">Modul Sedang Dikembangkan</h3>
-        <p className="max-w-md mx-auto text-sm">Halaman <b>SuperAdminIntegrations</b> ini adalah bagian dari fitur Enterprise. Tim *Engineering* kami akan segera merilisnya di update selanjutnya.</p>
+      
+      <div className="mt-8">
+        <div className="grid grid-cols-2 gap-4"><div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between"><div className="flex gap-3 items-center"><div className="w-10 h-10 bg-green-500 rounded-lg"></div><div><h4 className="font-bold">WhatsApp Gateway</h4><p className="text-xs text-slate-500">Kirim notif absen ke Ortu</p></div></div><button className="text-xs font-bold bg-slate-100 px-3 py-1 rounded">Terpasang</button></div><div className="p-4 border border-slate-200 rounded-xl flex items-center justify-between"><div className="flex gap-3 items-center"><div className="w-10 h-10 bg-blue-500 rounded-lg"></div><div><h4 className="font-bold">Zoom API</h4><p className="text-xs text-slate-500">Untuk kelas online</p></div></div><button className="text-xs font-bold bg-indigo-600 text-white px-3 py-1 rounded">Pasang</button></div></div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Webhook } from 'lucide-react';
+import { Webhook, ShieldAlert } from 'lucide-react';
 
 export default function SuperAdminAPI() {
   return (
@@ -8,11 +8,9 @@ export default function SuperAdminAPI() {
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Developer API 👨‍💻</h1>
         <p className="text-slate-500 mt-1 text-sm sm:text-base">Manajemen Webhook dan API Key platform.</p>
       </div>
-
-      <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm min-h-[400px] flex flex-col items-center justify-center text-slate-400 text-center">
-        <Webhook className="w-20 h-20 mb-6 opacity-20 text-indigo-600" />
-        <h3 className="text-xl font-bold text-slate-700 mb-2">Modul Sedang Dikembangkan</h3>
-        <p className="max-w-md mx-auto text-sm">Halaman <b>SuperAdminAPI</b> ini adalah bagian dari fitur Enterprise. Tim *Engineering* kami akan segera merilisnya di update selanjutnya.</p>
+      
+      <div className="mt-8">
+        <div className="bg-white p-6 rounded-xl border border-slate-200"><h3 className="font-bold mb-4">API Keys Aktif</h3><div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex justify-between items-center mb-4"><span className="font-mono text-sm">sk_live_9384729384729348...</span><button className="text-indigo-600 text-sm font-bold">Copy</button></div><button className="bg-slate-900 text-white px-4 py-2 rounded-lg font-bold text-sm">Buat Token Baru</button></div>
       </div>
     </div>
   );
