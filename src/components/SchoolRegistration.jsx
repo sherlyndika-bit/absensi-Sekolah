@@ -23,7 +23,6 @@ export default function SchoolRegistration({ onBack, onLogin }) {
 
     try {
       // 1. Cek apakah slug sudah dipakai sekolah lain
-      // Gunakan maybeSingle() agar tidak error saat data tidak ditemukan
       const { data: existing } = await supabase
         .from('schools')
         .select('id')
@@ -36,14 +35,15 @@ export default function SchoolRegistration({ onBack, onLogin }) {
         return;
       }
 
-      // 2. Insert School (hanya kolom yang pasti ada di tabel)
+      // 2. Insert School — kolom sesuai skema: name, level, status, slug, package_plan
       const { data: schoolData, error: schoolError } = await supabase
         .from('schools')
         .insert([{ 
-          name: formData.schoolName, 
-          slug: formData.slug.toLowerCase(),
+          name: formData.schoolName,
           level: formData.level,
-          package_plan: formData.packagePlan
+          slug: formData.slug.toLowerCase(),
+          package_plan: formData.packagePlan,
+          status: 'active'
         }])
         .select()
         .single();
