@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, ShieldAlert } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 
 export default function SuperAdminSecurity() {
   return (
