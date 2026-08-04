@@ -139,7 +139,7 @@ export default function SchoolRegistration({ onBack, onLogin }) {
                 <label className="text-xs font-bold text-slate-600 block mb-1.5">Alamat URL Portal Sekolah</label>
                 <div className="flex bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
                   <div className="bg-slate-100 border-r border-slate-200 px-4 py-3 text-sm font-semibold text-slate-500 flex items-center">
-                    absenpro.com/
+                    {window.location.host}/
                   </div>
                   <input 
                     type="text" 
