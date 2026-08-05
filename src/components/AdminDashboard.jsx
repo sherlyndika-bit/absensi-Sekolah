@@ -1,462 +1,208 @@
 import React, { useState, useEffect } from 'react';
-import { store } from '../firebase/services';
-import { Users, CheckCircle2, Clock, AlertCircle, FileText, MapPin, Send, Check, X, Eye, Crosshair } from 'lucide-react';
-import { MapContainer, TileLayer, Circle, Marker, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import SupportChatWidget from './SupportChatWidget';
+import { Users, CheckCircle2, Clock, AlertCircle, FileText, MapPin, Send, Check, X, Building2, Grid, Lock } from 'lucide-react';
+import supabase from '../supabase/config';
 
-const schoolIcon = new L.DivIcon({
-  className: 'bg-transparent',
-  html: `<div style="background-color: #1e3a8a; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg></div>`,
-  iconAnchor: [14, 14]
-});
-
-const studentLocIcon = new L.DivIcon({
-  className: 'bg-transparent',
-  html: `<div style="background-color: #ef4444; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></div>`,
-  iconAnchor: [12, 12]
-});
-
-function MapUpdater({ center }) {
-  const map = useMap();
-  React.useEffect(() => {
-    map.setView(center, map.getZoom(), { animate: true });
-  }, [center, map]);
-  return null;
-}
-
-function ResizeFix() {
-  const map = useMap();
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [map]);
-  return null;
-}
-
-export default function AdminDashboard() {
-  const [data, setData] = useState(store.getState());
-  const [selectedPhoto, setSelectedPhoto] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [selectedClassFilter, setSelectedClassFilter] = useState('ALL');
+export default function AdminDashboard({ user }) {
+  const [activeTab, setActiveTab] = useState('overview');
+  const [school, setSchool] = useState(null);
+  const [pricing, setPricing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Real Data State
+  const [classes, setClasses] = useState([]);
+  const [students, setStudents] = useState([]);
 
   useEffect(() => {
-    return store.subscribe((newState) => setData(newState));
+    fetchSchoolData();
   }, []);
 
-  const uniqueClasses = Array.from(new Set(data.students.map(s => s.classId))).sort();
-  const schoolName = data.schoolInfo?.name || "Memuat...";
-  const schoolLevel = data.schoolInfo?.level || "-";
+  const fetchSchoolData = async () => {
+    const { data: schoolData } = await supabase.from('schools').select('*').eq('id', user.schoolId).single();
+    setSchool(schoolData);
 
-  // Filter Data by Class
-  const filteredStudents = selectedClassFilter === 'ALL' ? data.students : data.students.filter(s => s.classId === selectedClassFilter);
-  const filteredAttendances = selectedClassFilter === 'ALL' ? data.attendances : data.attendances.filter(a => a.classId === selectedClassFilter);
-  const filteredLeaves = selectedClassFilter === 'ALL' ? data.leaveRequests : data.leaveRequests.filter(r => r.classId === selectedClassFilter);
+    const { data: pricingData } = await supabase.from('global_settings').select('value').eq('key', 'pricing_config').single();
+    if(pricingData) setPricing(JSON.parse(pricingData.value));
 
-  const totalStudents = filteredStudents.length;
-  const totalHadir = filteredAttendances.filter(a => a.status === 'Hadir').length;
-  const totalTerlambat = filteredAttendances.filter(a => a.status === 'Terlambat').length;
-  const totalSakit = filteredLeaves.filter(r => r.status === 'approved').length;
-  const totalAlfa = Math.max(0, totalStudents - (totalHadir + totalTerlambat + totalSakit));
+    // Fetch Classes
+    const { data: clsData } = await supabase.from('classes').select('*').eq('school_id', user.schoolId);
+    setClasses(clsData || []);
 
-  const pendingEnrollments = filteredStudents.filter(s => s.faceEnrollmentStatus === 'pending');
-  const pendingLeaves = filteredLeaves.filter(r => r.status === 'pending');
+    // Fetch Students
+    const { data: stdData } = await supabase.from('users').select('*').eq('school_id', user.schoolId).eq('role', 'student');
+    setStudents(stdData || []);
 
-  const handleApproveEnrollment = (studentId) => store.updateEnrollmentStatus(studentId, 'approved');
-  const handleRejectEnrollment = (studentId) => store.updateEnrollmentStatus(studentId, 'rejected');
-  const handleApproveLeave = (reqId) => store.updateLeaveStatus(reqId, 'approved');
-  const handleRejectLeave = (reqId) => store.updateLeaveStatus(reqId, 'rejected');
-  const handleUpdateGeofenceRadius = (e) => store.updateGeofence({ allowedRadiusMeters: Number(e.target.value) });
-  
-  const handleUseMyLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Browser Anda tidak mendukung Geolocation.");
-      return;
-    }
-    navigator.geolocation.getCurrentPosition((position) => {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      if (confirm(`Pindahkan gerbang sekolah ke kordinat Anda saat ini?\n(Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)})`)) {
-        store.updateGeofence({ centerLatitude: lat, centerLongitude: lng });
-      }
-    }, (err) => {
-      alert("Gagal mendapatkan lokasi: " + err.message);
-    });
+    setLoading(false);
   };
 
+  if (loading) return <div className="p-12 text-center">Loading Workspace...</div>;
+
+  const currentPlan = school?.package_plan || 'Basic';
+  const features = pricing?.[currentPlan]?.features || [];
+  const hasFeature = (f) => features.includes(f);
+
+  const LockedFeature = ({ name }) => (
+    <div className="flex flex-col items-center justify-center p-12 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl text-center">
+      <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+        <Lock className="w-8 h-8 text-slate-400" />
+      </div>
+      <h3 className="text-xl font-bold text-slate-800 mb-2">Fitur {name} Dikunci</h3>
+      <p className="text-slate-500 mb-6 max-w-sm">Tingkatkan paket layanan Anda ke Pro atau Enterprise untuk membuka fitur ini.</p>
+      <button className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 transition-all">
+        Upgrade Paket Sekarang
+      </button>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      
-      {/* Page Title Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900">Dashboard Kehadiran Siswa</h2>
-          <p className="text-xs text-slate-500">Ringkasan presensi harian, log absensi real-time, dan verifikasi dokumen.</p>
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0">
+        <div className="p-6 bg-slate-950 border-b border-slate-800">
+          <h2 className="text-white font-black text-xl truncate" title={school?.name}>{school?.name}</h2>
+          <span className="inline-block mt-2 px-2 py-1 bg-indigo-500/20 text-indigo-400 text-xs font-bold rounded uppercase">
+            {currentPlan} PLAN
+          </span>
         </div>
-        <div className="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-lg border border-slate-200 w-fit">
-          Hari ini: <strong className="text-slate-800">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</strong>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto space-y-6">
-      
-      {/* SaaS School Banner */}
-      <div className="bg-gradient-to-r from-blue-900 to-indigo-900 rounded-2xl p-6 text-white shadow-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight flex items-center gap-2">
-            <Building2 className="w-7 h-7 text-blue-300" />
-            Dasbor Admin {schoolName}
-          </h1>
-          <p className="text-blue-200 text-sm mt-1">Tingkat: <span className="font-bold text-white bg-blue-800/50 px-2 py-0.5 rounded-md">{schoolLevel}</span> | Ruang Kerja SaaS Aktif</p>
-        </div>
-        <div className="flex items-center gap-3 bg-white/10 p-2 rounded-xl backdrop-blur-sm border border-white/20">
-          <span className="text-xs font-bold text-blue-100 pl-2">Filter Kelas:</span>
-          <select 
-            value={selectedClassFilter} 
-            onChange={(e) => setSelectedClassFilter(e.target.value)}
-            className="bg-white text-slate-800 text-sm font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option value="ALL">Semua Kelas</option>
-            {uniqueClasses.map(c => (
-              <option key={c} value={c}>Kelas {c}</option>
-            ))}
-          </select>
+        <div className="p-4 space-y-1 flex-1 overflow-y-auto">
+          <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'overview' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+            <Grid className="w-5 h-5" /> Overview
+          </button>
+          <button onClick={() => setActiveTab('classes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'classes' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+            <Building2 className="w-5 h-5" /> Manajemen Kelas
+            {!hasFeature('classes') && <Lock className="w-4 h-4 ml-auto text-slate-500"/>}
+          </button>
+          <button onClick={() => setActiveTab('students')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+            <Users className="w-5 h-5" /> Data Siswa
+          </button>
+          <button onClick={() => setActiveTab('attendance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'attendance' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+            <CheckCircle2 className="w-5 h-5" /> Rekap Absensi
+            {!hasFeature('attendance') && <Lock className="w-4 h-4 ml-auto text-slate-500"/>}
+          </button>
+          <button onClick={() => setActiveTab('leaves')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'leaves' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+            <AlertCircle className="w-5 h-5" /> Izin & Sakit
+            {!hasFeature('leaves') && <Lock className="w-4 h-4 ml-auto text-slate-500"/>}
+          </button>
+          <button onClick={() => setActiveTab('broadcast')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'broadcast' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+            <Send className="w-5 h-5" /> Pengumuman
+            {!hasFeature('broadcast') && <Lock className="w-4 h-4 ml-auto text-slate-500"/>}
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Main Content */}
+      <div className="flex-1 p-8 overflow-y-auto">
         
-        <div className="clean-card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center">
-            <Users className="w-5 h-5" />
-          </div>
+        {activeTab === 'overview' && (
           <div>
-            <p className="text-xs text-slate-500 font-medium">Total Siswa</p>
-            <h3 className="text-xl font-bold text-slate-900">{totalStudents}</h3>
-          </div>
-        </div>
-
-        <div className="clean-card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Hadir Tepat Waktu</p>
-            <h3 className="text-xl font-bold text-emerald-600">{totalHadir}</h3>
-          </div>
-        </div>
-
-        <div className="clean-card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-            <Clock className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Terlambat</p>
-            <h3 className="text-xl font-bold text-amber-600">{totalTerlambat}</h3>
-          </div>
-        </div>
-
-        <div className="clean-card p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-            <FileText className="w-5 h-5" />
-          </div>
-          <div>
-            <p className="text-xs text-slate-500 font-medium">Izin / Sakit</p>
-            <h3 className="text-xl font-bold text-blue-600">{totalSakit}</h3>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Table Log Absensi */}
-        <div className="lg:col-span-2 clean-card p-5 space-y-4 flex flex-col min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="font-bold text-sm text-slate-900">Log Presensi Real-Time</h3>
-              <p className="text-xs text-slate-500">Data kehadiran siswa yang masuk hari ini</p>
+            <h1 className="text-3xl font-black text-slate-900 mb-2">Overview Hari Ini</h1>
+            <p className="text-slate-500 mb-8">Selamat datang kembali, {user.name}.</p>
+            <div className="grid grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                <p className="text-slate-500 font-bold text-xs uppercase mb-2">Total Siswa</p>
+                <p className="text-4xl font-black text-slate-800">{students.length}</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-emerald-200">
+                <p className="text-emerald-600 font-bold text-xs uppercase mb-2">Hadir</p>
+                <p className="text-4xl font-black text-emerald-700">0</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-rose-200">
+                <p className="text-rose-600 font-bold text-xs uppercase mb-2">Alfa</p>
+                <p className="text-4xl font-black text-rose-700">0</p>
+              </div>
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-amber-200">
+                <p className="text-amber-600 font-bold text-xs uppercase mb-2">Izin/Sakit</p>
+                <p className="text-4xl font-black text-amber-700">0</p>
+              </div>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md whitespace-nowrap">
-              {data.attendances.length} Catatan
-            </span>
           </div>
+        )}
 
-          <div className="overflow-x-auto scrollbar-hide -mx-5 px-5 sm:mx-0 sm:px-0">
-            <table className="w-full text-left text-xs text-slate-600 whitespace-nowrap">
-              <thead className="bg-slate-50 uppercase font-semibold text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100">Tanggal</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100">Jam</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100">Metode</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100">Jarak Validasi</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100 text-center">WA Ortu</th>
-                  <th className="px-4 py-3 font-semibold text-slate-600 border-b border-slate-100 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredAttendances.length === 0 ? (
+        {activeTab === 'classes' && (
+          !hasFeature('classes') ? <LockedFeature name="Manajemen Kelas" /> :
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 mb-6">Manajemen Kelas</h1>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <button className="mb-6 px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm">+ Tambah Kelas Baru</button>
+              <div className="grid grid-cols-3 gap-4">
+                {classes.length === 0 ? <p className="text-slate-500 col-span-3">Belum ada kelas.</p> : 
+                  classes.map(c => (
+                    <div key={c.id} className="border border-slate-200 p-4 rounded-xl">
+                      <h3 className="font-bold text-lg">{c.name}</h3>
+                      <p className="text-slate-500 text-sm">{c.grade} {c.level}</p>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'students' && (
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 mb-6">Database Siswa</h1>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200">
                   <tr>
-                    <td colSpan="8" className="p-8 text-center text-slate-400">Belum ada riwayat absensi.</td>
+                    <th className="px-6 py-4 font-bold text-slate-600">Nama Lengkap</th>
+                    <th className="px-6 py-4 font-bold text-slate-600">NISN</th>
+                    <th className="px-6 py-4 font-bold text-slate-600">No HP Orang Tua</th>
+                    <th className="px-6 py-4 font-bold text-slate-600">Face ID</th>
                   </tr>
-                ) : (
-                  filteredAttendances.map((att) => (
-                    <tr key={att.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="p-3 font-semibold text-slate-900">{att.studentName}</td>
-                      <td className="p-3 text-slate-500">{att.classId}</td>
-                      <td className="p-3 text-slate-600">{att.dateString || '-'}</td>
-                      <td className="p-3 font-mono font-medium text-blue-900">{att.timeStr}</td>
-                      <td className="p-3">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">
-                          {att.method === 'mobile_liveness' ? 'HP Siswa' : att.method === 'smart_kiosk' ? 'Kiosk Gate' : 'GPS + Face'}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-[11px] font-medium ${
-                            att.distanceMeters <= data.geofence.allowedRadiusMeters 
-                              ? 'clean-badge-green' 
-                              : 'clean-badge-red'
-                          }`}>
-                            {att.distanceMeters}m ({att.distanceMeters <= data.geofence.allowedRadiusMeters ? 'Valid' : 'Luar Area'})
-                          </span>
-                          {att.gpsCoordinates && (
-                            <button 
-                              onClick={() => setSelectedLocation(att)} 
-                              className="px-2 py-0.5 rounded bg-blue-50 hover:bg-blue-100 text-blue-700 text-[10px] font-bold border border-blue-200 inline-flex items-center gap-1 transition-colors"
-                            >
-                              <MapPin className="w-3 h-3" /> Peta
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      <td className="p-3 text-center">
-                        <span className="clean-badge-green px-2 py-0.5 rounded text-[11px] inline-flex items-center gap-1">
-                          <Send className="w-3 h-3" /> Terkirim
-                        </span>
-                      </td>
-                      <td className="p-3 text-center">
-                        <button 
-                          onClick={() => setSelectedPhoto(att.photoProofUrl)}
-                          className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-medium inline-flex items-center gap-1"
-                        >
-                          <Eye className="w-3 h-3" /> Lihat Foto
-                        </button>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {students.map(s => (
+                    <tr key={s.id}>
+                      <td className="px-6 py-4 font-bold">{s.name}</td>
+                      <td className="px-6 py-4 font-mono">{s.nisn || '-'}</td>
+                      <td className="px-6 py-4">{s.parent_phone}</td>
+                      <td className="px-6 py-4">
+                        {s.enrollment_status === 'approved' ? 
+                          <span className="text-emerald-600 bg-emerald-50 px-2 py-1 rounded text-xs font-bold">Terdaftar</span> : 
+                          <span className="text-slate-500 bg-slate-100 px-2 py-1 rounded text-xs font-bold">Belum</span>
+                        }
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Sidebar Kanan: Geofence & Persetujuan Wajah/Izin */}
-        <div className="space-y-6">
-          
-          {/* Pengaturan Geofence Sekolah */}
-          <div className="clean-card p-5 space-y-3">
-            <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-blue-900" />
-              Radius Geofence Sekolah
-            </h3>
-            <div className="space-y-3 text-xs">
-              
-              {/* Map Preview */}
-              <div className="rounded-lg overflow-hidden border border-slate-200 h-32 relative z-0">
-                <MapContainer 
-                  center={[data.geofence.centerLatitude, data.geofence.centerLongitude]} 
-                  zoom={16} 
-                  scrollWheelZoom={false}
-                  className="h-full w-full"
-                >
-                  <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-                  <MapUpdater center={[data.geofence.centerLatitude, data.geofence.centerLongitude]} />
-                  <Circle 
-                    center={[data.geofence.centerLatitude, data.geofence.centerLongitude]} 
-                    radius={data.geofence.allowedRadiusMeters} 
-                    pathOptions={{ color: '#1e3a8a', fillColor: '#3b82f6', fillOpacity: 0.15 }} 
-                  />
-                  <Marker position={[data.geofence.centerLatitude, data.geofence.centerLongitude]} icon={schoolIcon} />
-                </MapContainer>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-slate-500 font-bold">Titik Pusat Kordinat</label>
-                </div>
-                <div className="flex gap-2">
-                  <input type="text" value={`${data.geofence.centerLatitude.toFixed(5)}, ${data.geofence.centerLongitude.toFixed(5)}`} disabled className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-2 text-slate-700 font-mono text-[10px]" />
-                  <button onClick={handleUseMyLocation} className="p-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors" title="Gunakan Lokasi Saya Saat Ini">
-                    <Crosshair className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-slate-500">Radius Izin Absen</label>
-                  <span className="text-blue-900 font-bold">{data.geofence.allowedRadiusMeters} Meter</span>
-                </div>
-                <input 
-                  type="range" 
-                  min="10" 
-                  max="200" 
-                  step="5"
-                  value={data.geofence.allowedRadiusMeters} 
-                  onChange={handleUpdateGeofenceRadius}
-                  className="w-full accent-blue-900 cursor-pointer"
-                />
-              </div>
+                  ))}
+                  {students.length === 0 && (
+                    <tr><td colSpan="4" className="p-8 text-center text-slate-500">Belum ada siswa terdaftar.</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
+        )}
 
-          {/* Persetujuan Pendaftaran Wajah Mandiri */}
-          <div className="clean-card p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-sm text-slate-900">Verifikasi Wajah Siswa</h3>
-              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold text-[11px] border border-amber-200">
-                {pendingEnrollments.length} Menunggu
-              </span>
+        {activeTab === 'attendance' && (
+          !hasFeature('attendance') ? <LockedFeature name="Laporan Rekap Absensi" /> :
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 mb-6">Rekap Kehadiran Siswa</h1>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
+              Tabel rekap bulanan akan muncul di sini. (Dalam pengembangan)
             </div>
-            
-            {pendingEnrollments.length === 0 ? (
-              <p className="text-xs text-slate-400 py-2 text-center">Tidak ada pendaftaran wajah baru.</p>
-            ) : (
-              <div className="space-y-2">
-                {pendingEnrollments.map((s) => (
-                  <div key={s.id} className="p-2.5 rounded-lg border border-slate-200 flex items-center justify-between gap-2 bg-slate-50">
-                    <img src={s.photoUrl} alt={s.name} className="w-8 h-8 rounded-full object-cover border border-slate-300" />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-slate-800 truncate">{s.name}</h4>
-                      <p className="text-[10px] text-slate-500">{s.classId}</p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => handleApproveEnrollment(s.id)} className="p-1 rounded bg-emerald-600 text-white" title="Setujui">
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => handleRejectEnrollment(s.id)} className="p-1 rounded bg-rose-600 text-white" title="Tolak">
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
+        )}
 
-          {/* Persetujuan Surat Izin Sakit */}
-          <div className="clean-card p-5 space-y-3">
-            <h3 className="font-bold text-sm text-slate-900">Verifikasi Surat Sakit</h3>
-            {pendingLeaves.length === 0 ? (
-              <p className="text-xs text-slate-400 py-2 text-center">Tidak ada pengajuan izin pending.</p>
-            ) : (
-              <div className="space-y-2">
-                {pendingLeaves.map((req) => (
-                  <div key={req.id} className="p-3 rounded-lg border border-slate-200 space-y-2 bg-slate-50">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-900">{req.studentName} ({req.classId})</h4>
-                        <p className="text-[11px] text-slate-600">{req.category}: {req.reason}</p>
-                      </div>
-                      <button onClick={() => setSelectedPhoto(req.medicalNoteUrl)} className="text-[10px] text-blue-700 underline font-medium">
-                        Lihat Surat
-                      </button>
-                    </div>
-                    <div className="flex justify-end gap-2 pt-1 border-t border-slate-200">
-                      <button onClick={() => handleRejectLeave(req.id)} className="px-2 py-1 rounded bg-slate-200 text-slate-700 text-[10px] font-bold">
-                        Tolak
-                      </button>
-                      <button onClick={() => handleApproveLeave(req.id)} className="px-2 py-1 rounded bg-blue-900 text-white text-[10px] font-bold">
-                        Setujui
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+        {activeTab === 'leaves' && (
+          !hasFeature('leaves') ? <LockedFeature name="Persetujuan Izin/Sakit" /> :
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 mb-6">Inbox Izin & Sakit</h1>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
+              Surat izin dari HP orang tua akan masuk ke sini.
+            </div>
           </div>
+        )}
 
-        </div>
-
+        {activeTab === 'broadcast' && (
+          !hasFeature('broadcast') ? <LockedFeature name="Broadcast Pengumuman" /> :
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 mb-6">Broadcast Pengumuman</h1>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
+              Kirim pengumuman massal ke aplikasi HP siswa.
+            </div>
+          </div>
+        )}
       </div>
-
-      {/* Modal Preview Foto Bukti */}
-      {selectedPhoto && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 max-w-md w-full space-y-4 shadow-xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-slate-900 text-sm">Bukti Pindaian Wajah / Surat Sakit</h3>
-              <button onClick={() => setSelectedPhoto(null)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <img src={selectedPhoto} alt="Bukti Absensi" className="w-full rounded-lg max-h-80 object-cover border border-slate-200" />
-            <button onClick={() => setSelectedPhoto(null)} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg">
-              Tutup Preview
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Peta Lokasi Asli */}
-      {selectedLocation && selectedLocation.gpsCoordinates && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setSelectedLocation(null) }}>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 max-w-2xl w-full space-y-4 shadow-xl">
-            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
-              <div>
-                <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-blue-700" /> Lokasi Asli Check-In
-                </h3>
-                <p className="text-[11px] text-slate-500">{selectedLocation.studentName} • Jarak tercatat: {selectedLocation.distanceMeters}m</p>
-              </div>
-              <button onClick={() => setSelectedLocation(null)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="rounded-lg overflow-hidden border border-slate-300 h-64 relative z-0">
-              <MapContainer 
-                center={[selectedLocation.gpsCoordinates.lat, selectedLocation.gpsCoordinates.lng]} 
-                zoom={17} 
-                scrollWheelZoom={true}
-                className="h-full w-full"
-              >
-                <ResizeFix />
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
-                
-                {/* Gerbang Sekolah */}
-                <Circle 
-                  center={[data.geofence.centerLatitude, data.geofence.centerLongitude]} 
-                  radius={data.geofence.allowedRadiusMeters} 
-                  pathOptions={{ color: '#1e3a8a', fillColor: '#3b82f6', fillOpacity: 0.15 }} 
-                />
-                <Marker position={[data.geofence.centerLatitude, data.geofence.centerLongitude]} icon={schoolIcon}>
-                  <Popup>Gerbang Sekolah</Popup>
-                </Marker>
-
-                {/* Titik Siswa Asli */}
-                <Marker position={[selectedLocation.gpsCoordinates.lat, selectedLocation.gpsCoordinates.lng]} icon={studentLocIcon}>
-                  <Popup>
-                    <div className="font-bold">Titik Absen Siswa</div>
-                    <div>Lat: {selectedLocation.gpsCoordinates.lat.toFixed(6)}</div>
-                    <div>Lng: {selectedLocation.gpsCoordinates.lng.toFixed(6)}</div>
-                  </Popup>
-                </Marker>
-              </MapContainer>
-            </div>
-            
-            <button onClick={() => setSelectedLocation(null)} className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg">
-              Tutup Peta
-            </button>
-          </div>
-        </div>
-      )}
-      
-      <SupportChatWidget />
-    </div>
     </div>
   );
 }
