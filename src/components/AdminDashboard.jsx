@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, CheckCircle2, Clock, AlertCircle, FileText, MapPin, Send, Check, X, Building2, Grid, Lock } from 'lucide-react';
+import { Users, CheckCircle2, Clock, AlertCircle, FileText, MapPin, Send, Check, X, Building2, Grid, Lock, LogOut, Tablet, UserCheck } from 'lucide-react';
 import supabase from '../supabase/config';
 
-export default function AdminDashboard({ user }) {
+import SmartKiosk from './SmartKiosk';
+import FaceEnrollment from './FaceEnrollment';
+
+export default function AdminDashboard({ user, onLogout }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [school, setSchool] = useState(null);
   const [pricing, setPricing] = useState(null);
@@ -34,7 +37,7 @@ export default function AdminDashboard({ user }) {
     setLoading(false);
   };
 
-  if (loading) return <div className="p-12 text-center">Loading Workspace...</div>;
+  if (loading) return <div className="p-12 text-center text-slate-500">Loading Workspace...</div>;
 
   const currentPlan = school?.package_plan || 'Basic';
   const features = pricing?.[currentPlan]?.features || [];
@@ -53,39 +56,80 @@ export default function AdminDashboard({ user }) {
     </div>
   );
 
+  // If Smart Kiosk or Enrollment is active, maybe we don't need the standard dashboard wrapper, 
+  // but let's just render them inside the main content area.
+  if (activeTab === 'kiosk') {
+    return (
+      <div className="relative">
+        <button onClick={() => setActiveTab('overview')} className="absolute top-4 left-4 z-50 px-4 py-2 bg-white/20 hover:bg-white/40 text-white rounded-lg backdrop-blur-md">Kembali ke Dashboard</button>
+        <SmartKiosk />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
-      <div className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0">
+      <div className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 h-screen sticky top-0">
         <div className="p-6 bg-slate-950 border-b border-slate-800">
           <h2 className="text-white font-black text-xl truncate" title={school?.name}>{school?.name}</h2>
           <span className="inline-block mt-2 px-2 py-1 bg-indigo-500/20 text-indigo-400 text-xs font-bold rounded uppercase">
             {currentPlan} PLAN
           </span>
         </div>
+        
         <div className="p-4 space-y-1 flex-1 overflow-y-auto">
-          <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'overview' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          <p className="px-4 text-[10px] font-bold text-slate-500 uppercase mb-2 mt-2">Utama</p>
+          <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'overview' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
             <Grid className="w-5 h-5" /> Overview
           </button>
-          <button onClick={() => setActiveTab('classes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'classes' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          
+          <button onClick={() => setActiveTab('classes')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'classes' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
             <Building2 className="w-5 h-5" /> Manajemen Kelas
             {!hasFeature('classes') && <Lock className="w-4 h-4 ml-auto text-slate-500"/>}
           </button>
-          <button onClick={() => setActiveTab('students')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          
+          <button onClick={() => setActiveTab('students')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'students' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
             <Users className="w-5 h-5" /> Data Siswa
           </button>
-          <button onClick={() => setActiveTab('attendance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'attendance' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          
+          <button onClick={() => setActiveTab('attendance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'attendance' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
             <CheckCircle2 className="w-5 h-5" /> Rekap Absensi
             {!hasFeature('attendance') && <Lock className="w-4 h-4 ml-auto text-slate-500"/>}
           </button>
-          <button onClick={() => setActiveTab('leaves')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'leaves' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          
+          <button onClick={() => setActiveTab('leaves')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'leaves' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
             <AlertCircle className="w-5 h-5" /> Izin & Sakit
             {!hasFeature('leaves') && <Lock className="w-4 h-4 ml-auto text-slate-500"/>}
           </button>
-          <button onClick={() => setActiveTab('broadcast')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'broadcast' ? 'bg-indigo-600 text-white' : 'hover:bg-slate-800 hover:text-white'}`}>
+          
+          <button onClick={() => setActiveTab('broadcast')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'broadcast' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
             <Send className="w-5 h-5" /> Pengumuman
             {!hasFeature('broadcast') && <Lock className="w-4 h-4 ml-auto text-slate-500"/>}
           </button>
+
+          <p className="px-4 text-[10px] font-bold text-slate-500 uppercase mb-2 mt-6">Perangkat Keras</p>
+          <button onClick={() => setActiveTab('kiosk')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'kiosk' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
+            <Tablet className="w-5 h-5" /> Jalankan Mesin Kiosk
+          </button>
+          <button onClick={() => setActiveTab('enrollment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'enrollment' ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white'}`}>
+            <UserCheck className="w-5 h-5" /> Daftar Face ID Siswa
+          </button>
+        </div>
+
+        <div className="p-4 border-t border-slate-800">
+          <div className="flex items-center gap-3 px-4 py-3">
+            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-indigo-400">
+              {user.name.charAt(0)}
+            </div>
+            <div className="flex-1 truncate">
+              <p className="text-sm font-bold text-white truncate">{user.name}</p>
+              <p className="text-xs text-slate-500">Admin</p>
+            </div>
+            <button onClick={onLogout} className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-400/10 rounded-lg transition-colors" title="Keluar">
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -93,7 +137,7 @@ export default function AdminDashboard({ user }) {
       <div className="flex-1 p-8 overflow-y-auto">
         
         {activeTab === 'overview' && (
-          <div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-3xl font-black text-slate-900 mb-2">Overview Hari Ini</h1>
             <p className="text-slate-500 mb-8">Selamat datang kembali, {user.name}.</p>
             <div className="grid grid-cols-4 gap-6">
@@ -119,7 +163,7 @@ export default function AdminDashboard({ user }) {
 
         {activeTab === 'classes' && (
           !hasFeature('classes') ? <LockedFeature name="Manajemen Kelas" /> :
-          <div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl font-black text-slate-900 mb-6">Manajemen Kelas</h1>
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <button className="mb-6 px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm">+ Tambah Kelas Baru</button>
@@ -138,7 +182,7 @@ export default function AdminDashboard({ user }) {
         )}
 
         {activeTab === 'students' && (
-          <div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl font-black text-slate-900 mb-6">Database Siswa</h1>
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
               <table className="w-full text-left text-sm">
@@ -175,7 +219,7 @@ export default function AdminDashboard({ user }) {
 
         {activeTab === 'attendance' && (
           !hasFeature('attendance') ? <LockedFeature name="Laporan Rekap Absensi" /> :
-          <div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl font-black text-slate-900 mb-6">Rekap Kehadiran Siswa</h1>
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
               Tabel rekap bulanan akan muncul di sini. (Dalam pengembangan)
@@ -185,7 +229,7 @@ export default function AdminDashboard({ user }) {
 
         {activeTab === 'leaves' && (
           !hasFeature('leaves') ? <LockedFeature name="Persetujuan Izin/Sakit" /> :
-          <div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl font-black text-slate-900 mb-6">Inbox Izin & Sakit</h1>
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
               Surat izin dari HP orang tua akan masuk ke sini.
@@ -195,11 +239,17 @@ export default function AdminDashboard({ user }) {
 
         {activeTab === 'broadcast' && (
           !hasFeature('broadcast') ? <LockedFeature name="Broadcast Pengumuman" /> :
-          <div>
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h1 className="text-2xl font-black text-slate-900 mb-6">Broadcast Pengumuman</h1>
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center text-slate-500">
               Kirim pengumuman massal ke aplikasi HP siswa.
             </div>
+          </div>
+        )}
+        
+        {activeTab === 'enrollment' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <FaceEnrollment />
           </div>
         )}
       </div>
