@@ -8,11 +8,15 @@ export default function SuperAdminSettings({ user }) {
   const [pricingConfig, setPricingConfig] = useState(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ targetUserId: '', newPassword: '' });
+  
+  // New Staff Modal State
+  const [showNewStaffModal, setShowNewStaffModal] = useState(false);
+  const [newStaffForm, setNewStaffForm] = useState({ name: '', phone: '', password: '', role: 'support' });
 
   const isOwner = user?.role === 'owner';
   const isManager = user?.role === 'manager';
   const isSuperadmin = user?.role === 'superadmin';
-  const canManageStaff = isOwner || isManager;
+  const canManageStaff = isOwner || isManager || isSuperadmin;
 
   useEffect(() => {
     if (activeTab === 'staff') {
@@ -67,6 +71,47 @@ export default function SuperAdminSettings({ user }) {
     setShowPasswordModal(false);
   };
 
+  const handleCreateStaff = async (e) => {
+    e.preventDefault();
+    
+    // Validasi hirarki: Manager hanya bisa buat peran di bawahnya
+    if (isManager && ['owner', 'superadmin', 'manager'].includes(newStaffForm.role)) {
+      alert("Anda hanya bisa membuat akun dengan role Support, DevOps, atau Finance.");
+      return;
+    }
+
+    const staffId = `staff_${Date.now()}`;
+    
+    const { error } = await supabase.from('users').insert([{
+      id: staffId,
+      name: newStaffForm.name,
+      role: newStaffForm.role,
+      parent_phone: newStaffForm.phone,
+      phone: newStaffForm.phone,
+      nisn: newStaffForm.phone, // Username/login identifier
+      password: newStaffForm.password,
+      class_id: null,
+      school_id: null,
+      enrollment_status: 'approved'
+    }]);
+
+    if (error) {
+      alert('Gagal membuat staf: ' + error.message);
+    } else {
+      alert('Staf berhasil dibuat!');
+      setShowNewStaffModal(false);
+      setNewStaffForm({ name: '', phone: '', password: '', role: 'support' });
+      fetchStaff(); // Refresh list
+    }
+  };
+
+  const handleDeleteStaff = async (id) => {
+    if (window.confirm('Yakin ingin menghapus staf ini?')) {
+      await supabase.from('users').delete().eq('id', id);
+      fetchStaff();
+    }
+  };
+
   return (
     <div className="p-4 sm:p-6 font-sans max-w-7xl mx-auto">
       <div className="mb-8">
@@ -118,7 +163,7 @@ export default function SuperAdminSettings({ user }) {
               
               <div className="space-y-6 mt-6">
                 {canManageStaff && (
-                  <button className="px-4 py-3 bg-blue-50 text-blue-700 font-bold text-sm rounded-xl hover:bg-blue-100 border border-blue-200 flex items-center gap-2 transition-colors">
+                  <button onClick={() => setShowNewStaffModal(true)} className="px-4 py-3 bg-blue-50 text-blue-700 font-bold text-sm rounded-xl hover:bg-blue-100 border border-blue-200 flex items-center gap-2 transition-colors">
                     <UserPlus className="w-4 h-4" /> Buat Akun Staf Baru
                   </button>
                 )}
@@ -132,7 +177,7 @@ export default function SuperAdminSettings({ user }) {
                           <p className="text-slate-500 text-xs mt-1">Role: <span className={`uppercase px-1.5 py-0.5 rounded text-[10px] font-bold ${getRoleColor(staff.role)}`}>{staff.role}</span></p>
                         </div>
                         <div className="flex items-center gap-2">
-                          {(staff.id === user.id || isOwner || (isManager && !['owner', 'superadmin', 'manager'].includes(staff.role))) && (
+                          {(staff.id === user.id || isOwner || isSuperadmin || (isManager && !['owner', 'superadmin', 'manager'].includes(staff.role))) && (
                             <button 
                               onClick={() => { setPasswordForm({targetUserId: staff.id, newPassword: ''}); setShowPasswordModal(true); }}
                               className="text-blue-500 p-2 hover:bg-blue-50 rounded-lg flex items-center gap-1"
@@ -141,8 +186,8 @@ export default function SuperAdminSettings({ user }) {
                               <Key className="w-4 h-4"/>
                             </button>
                           )}
-                          {canManageStaff && staff.role !== 'superadmin' && staff.id !== user.id && (
-                            <button className="text-rose-500 p-2 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4"/></button>
+                          {canManageStaff && staff.id !== user.id && (isSuperadmin || isOwner || (isManager && !['owner', 'superadmin', 'manager'].includes(staff.role))) && (
+                            <button onClick={() => handleDeleteStaff(staff.id)} className="text-rose-500 p-2 hover:bg-rose-50 rounded-lg"><Trash2 className="w-4 h-4"/></button>
                           )}
                         </div>
                       </div>
@@ -202,6 +247,45 @@ export default function SuperAdminSettings({ user }) {
         </div>
       </div>
 
+      {/* Modal Buat Staf Baru */}
+      {showNewStaffModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="font-bold text-lg mb-4">Buat Akun Staf Baru</h3>
+            <form onSubmit={handleCreateStaff} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Nama Lengkap</label>
+                <input type="text" value={newStaffForm.name} onChange={e => setNewStaffForm({...newStaffForm, name: e.target.value})} className="w-full border border-slate-200 px-4 py-2 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">No. HP / Username</label>
+                <input type="text" value={newStaffForm.phone} onChange={e => setNewStaffForm({...newStaffForm, phone: e.target.value})} className="w-full border border-slate-200 px-4 py-2 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Password Awal</label>
+                <input type="password" value={newStaffForm.password} onChange={e => setNewStaffForm({...newStaffForm, password: e.target.value})} className="w-full border border-slate-200 px-4 py-2 rounded-lg" required />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Role / Jabatan</label>
+                <select value={newStaffForm.role} onChange={e => setNewStaffForm({...newStaffForm, role: e.target.value})} className="w-full border border-slate-200 px-4 py-2 rounded-lg">
+                  {/* Superadmin bisa membuat semua role. Manager hanya support, devops, finance */}
+                  {(isSuperadmin || isOwner) && <option value="owner">Owner (Co-Founder)</option>}
+                  {(isSuperadmin || isOwner) && <option value="manager">Manager</option>}
+                  <option value="devops">DevOps Engineer</option>
+                  <option value="finance">Finance</option>
+                  <option value="support">Customer Support</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 mt-6">
+                <button type="button" onClick={() => setShowNewStaffModal(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg">Batal</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">Buat Akun</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Ganti Password */}
       {showPasswordModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
@@ -216,8 +300,8 @@ export default function SuperAdminSettings({ user }) {
                 required
               />
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2 text-slate-500">Batal</button>
-                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Simpan</button>
+                <button type="button" onClick={() => setShowPasswordModal(false)} className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg">Batal</button>
+                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">Simpan</button>
               </div>
             </form>
           </div>
