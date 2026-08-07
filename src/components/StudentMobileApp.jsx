@@ -159,6 +159,10 @@ export default function StudentMobileApp({ loggedInStudent }) {
           
           let matchCount = 0;
           let unmatchCount = 0;
+          let blinkCount = 0;
+          let isBlinking = false;
+          let eyeHistory = [];
+          
           clearInterval(detectionIntervalRef.current);
           
           detectionIntervalRef.current = setInterval(async () => {
@@ -169,40 +173,84 @@ export default function StudentMobileApp({ loggedInStudent }) {
               ).withFaceLandmarks(true).withFaceDescriptor();
               
               if (detection) {
-                // Check Face Recognition Match
-                let isMatch = false;
-                if (activeStudent.faceDescriptor) {
-                  const enrolledDescriptor = new Float32Array(activeStudent.faceDescriptor);
-                  const distance = faceapi.euclideanDistance(detection.descriptor, enrolledDescriptor);
-                  isMatch = distance <= 0.55; // 0.55 is a strict/good threshold
-                } else {
-                  // Fallback if somehow they got here without a descriptor
-                  isMatch = true; 
+                // Determine base match state
+                let newStatus = scanStatus;
+                
+                setScanStatus((prevStatus) => {
+                  if (prevStatus === 'liveness') {
+                    newStatus = 'liveness';
+                    return 'liveness';
+                  }
+                  
+                  let isMatch = false;
+                  if (activeStudent.faceDescriptor) {
+                    const enrolledDescriptor = new Float32Array(activeStudent.faceDescriptor);
+                    const distance = faceapi.euclideanDistance(detection.descriptor, enrolledDescriptor);
+                    isMatch = distance <= 0.55; 
+                  } else {
+                    isMatch = true; 
+                  }
+
+                  if (isMatch) {
+                    matchCount++;
+                    unmatchCount = 0;
+                    if (matchCount >= 2) {
+                      newStatus = 'liveness';
+                      return 'liveness';
+                    }
+                    newStatus = 'matched';
+                    return 'matched';
+                  } else {
+                    unmatchCount++;
+                    matchCount = 0;
+                    if (unmatchCount >= 5) {
+                      setManualFallbackCount(prev => prev + 1);
+                      unmatchCount = 0;
+                    }
+                    newStatus = 'unmatched';
+                    return 'unmatched';
+                  }
+                });
+
+                // Process Liveness if we reached that state
+                if (newStatus === 'liveness') {
+                  const leftEye = detection.landmarks.getLeftEye();
+                  const rightEye = detection.landmarks.getRightEye();
+                  
+                  const calculateEAR = (eye) => {
+                    const p2_p6 = Math.hypot(eye[1].x - eye[5].x, eye[1].y - eye[5].y);
+                    const p3_p5 = Math.hypot(eye[2].x - eye[4].x, eye[2].y - eye[4].y);
+                    const p1_p4 = Math.hypot(eye[0].x - eye[3].x, eye[0].y - eye[3].y);
+                    return (p2_p6 + p3_p5) / (2.0 * p1_p4);
+                  };
+
+                  const avgEAR = (calculateEAR(leftEye) + calculateEAR(rightEye)) / 2.0;
+                  
+                  eyeHistory.push(avgEAR);
+                  if (eyeHistory.length > 3) eyeHistory.shift();
+                  const smoothedEAR = eyeHistory.reduce((a,b)=>a+b,0)/eyeHistory.length;
+
+                  if (smoothedEAR < 0.25) {
+                    isBlinking = true;
+                  } else if (isBlinking && smoothedEAR >= 0.25) {
+                    blinkCount++;
+                    isBlinking = false;
+                  }
+
+                  if (blinkCount >= 1) {
+                    clearInterval(detectionIntervalRef.current);
+                    setScanStatus('matched'); // Show success before capture
+                    setTimeout(() => {
+                      handleCapturePhoto();
+                    }, 500);
+                  }
                 }
 
-                if (isMatch) {
-                  matchCount++;
-                  unmatchCount = 0;
-                  setScanStatus('matched');
-                  if (matchCount >= 2) {
-                    clearInterval(detectionIntervalRef.current);
-                    handleCapturePhoto();
-                  }
-                } else {
-                  unmatchCount++;
-                  matchCount = 0;
-                  setScanStatus('unmatched');
-                  if (unmatchCount >= 5) {
-                    setManualFallbackCount(prev => prev + 1);
-                    unmatchCount = 0;
-                  }
-                }
               } else {
-                matchCount = 0;
-                setScanStatus('scanning');
+                setScanStatus((prev) => prev === 'liveness' ? 'liveness' : 'scanning');
               }
             }
-          }, 500);
+          }, 150);
         }
       }, 300);
       
@@ -424,12 +472,14 @@ export default function StudentMobileApp({ loggedInStudent }) {
                         scanStatus === 'loading' ? 'bg-amber-500/90 text-white border border-amber-400' :
                         scanStatus === 'unmatched' ? 'bg-rose-500/90 text-white border border-rose-400 scale-105' :
                         scanStatus === 'matched' ? 'bg-emerald-500/90 text-white border border-emerald-400 scale-110' :
+                        scanStatus === 'liveness' ? 'bg-blue-600/90 text-white border border-blue-400 scale-110 animate-pulse' :
                         scanStatus === 'scanning' ? 'bg-black/50 text-white border border-white/20' :
                         'hidden'
                       }`}>
                         {scanStatus === 'loading' ? 'Memuat AI Model...' :
                          scanStatus === 'unmatched' ? 'Wajah Tidak Dikenali! ❌' :
-                         scanStatus === 'matched' ? 'Wajah Cocok! 📸' :
+                         scanStatus === 'matched' ? 'Wajah Cocok! ✅' :
+                         scanStatus === 'liveness' ? 'KEDIPKAN MATA ANDA! 👀' :
                          scanStatus === 'scanning' ? 'Arahkan Wajah ke Kamera...' : ''}
                       </div>
                     </div>
