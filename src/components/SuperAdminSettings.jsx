@@ -6,6 +6,7 @@ export default function SuperAdminSettings({ user }) {
   const [activeTab, setActiveTab] = useState('general');
   const [staffList, setStaffList] = useState([]);
   const [pricingConfig, setPricingConfig] = useState(null);
+  const [landingConfig, setLandingConfig] = useState({ phone: '', email: '', address: '', about: '' });
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordForm, setPasswordForm] = useState({ targetUserId: '', newPassword: '' });
   
@@ -23,12 +24,27 @@ export default function SuperAdminSettings({ user }) {
       fetchStaff();
     } else if (activeTab === 'pricing') {
       fetchPricing();
-    }
+    } else if (activeTab === 'landing') {
+      fetchLanding();
+      }
   }, [activeTab]);
 
   const fetchStaff = async () => {
     const { data } = await supabase.from('users').select('*').in('role', ['owner', 'superadmin', 'manager', 'devops', 'finance', 'support']).order('role');
     if (data) setStaffList(data);
+  };
+
+  
+  const fetchLanding = async () => {
+    const { data } = await supabase.from('global_settings').select('*').eq('key', 'landing_config').single();
+    if (data && data.value) {
+      setLandingConfig(JSON.parse(data.value));
+    }
+  };
+
+  const handleSaveLanding = async () => {
+    await supabase.from('global_settings').upsert({ key: 'landing_config', value: JSON.stringify(landingConfig) });
+    alert('Landing Page Content saved!');
   };
 
   const fetchPricing = async () => {
@@ -139,9 +155,45 @@ export default function SuperAdminSettings({ user }) {
           >
             Pricing & Plans
           </button>
+
+          <button 
+            onClick={() => setActiveTab('landing')}
+            className={`text-left px-4 py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-between ${activeTab === 'landing' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-slate-600 hover:bg-slate-100'}`}
+          >
+            Landing Page
+          </button>
+
         </div>
 
         <div className="flex-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm min-h-[400px]">
+
+          {activeTab === 'landing' && (
+            <div>
+              <h2 className="text-xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">Landing Page Content</h2>
+              <div className="space-y-4 max-w-2xl">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Nomor Telepon / WhatsApp</label>
+                  <input type="text" value={landingConfig.phone} onChange={e => setLandingConfig({...landingConfig, phone: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg" placeholder="+62 811..." />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Email Publik</label>
+                  <input type="email" value={landingConfig.email} onChange={e => setLandingConfig({...landingConfig, email: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg" placeholder="info@sekolah.id" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Alamat Institusi</label>
+                  <textarea rows="2" value={landingConfig.address} onChange={e => setLandingConfig({...landingConfig, address: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg" placeholder="Jl. Sudirman..."></textarea>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Teks Tentang Kami (About Us)</label>
+                  <textarea rows="5" value={landingConfig.about} onChange={e => setLandingConfig({...landingConfig, about: e.target.value})} className="w-full px-4 py-2 border border-slate-200 rounded-lg" placeholder="Sejarah singkat instansi..."></textarea>
+                </div>
+                <button onClick={handleSaveLanding} className="mt-4 px-6 py-2 bg-indigo-600 text-white font-bold text-sm rounded-lg hover:bg-indigo-700 flex items-center gap-2">
+                  <Save className="w-4 h-4" /> Save Content
+                </button>
+              </div>
+            </div>
+          )}
+
           {activeTab === 'general' && (
             <div>
               <h2 className="text-xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-4">General Settings</h2>
