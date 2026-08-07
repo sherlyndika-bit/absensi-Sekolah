@@ -12,6 +12,7 @@ export default function LandingPage({ onLogin }) {
     address: 'Gedung Pendidikan Modern Lt. 5\nJl. Merdeka Belajar No. 123, Jakarta Selatan 12190',
     about: 'AbsenPro hadir sebagai revolusi digital dalam sistem kedisiplinan instansi pendidikan di Indonesia. Kami berdedikasi membangun ekosistem yang aman, transparan, dan anti-kecurangan menggunakan teknologi biometrik tingkat tinggi.'
   });
+  const [pricingConfig, setPricingConfig] = useState(null);
 
   useEffect(() => {
     fetchLandingConfig();
@@ -19,13 +20,24 @@ export default function LandingPage({ onLogin }) {
 
   const fetchLandingConfig = async () => {
     try {
-      const { data, error } = await supabase.from('global_settings').select('value').eq('key', 'landing_config').single();
-      if (data && data.value) {
-        const config = JSON.parse(data.value);
-        setLandingConfig(prev => ({ ...prev, ...config }));
+      const { data: landingData } = await supabase.from('global_settings').select('value').eq('key', 'landing_config').single();
+      if (landingData && landingData.value) {
+        setLandingConfig(prev => ({ ...prev, ...JSON.parse(landingData.value) }));
+      }
+      
+      const { data: pricingData } = await supabase.from('global_settings').select('value').eq('key', 'pricing_config').single();
+      if (pricingData && pricingData.value) {
+        setPricingConfig(JSON.parse(pricingData.value));
+      } else {
+        // Fallback default
+        setPricingConfig({
+          'Basic': { price: 250000, features: ['face_id', 'classes', 'attendance'] },
+          'Pro': { price: 750000, features: ['face_id', 'classes', 'attendance', 'reports', 'geofence', 'broadcast'] },
+          'Enterprise': { price: 0, features: ['face_id', 'classes', 'attendance', 'leaves', 'reports', 'geofence', 'broadcast', 'api', 'support'] }
+        });
       }
     } catch (e) {
-      console.error('Error fetching landing config', e);
+      console.error('Error fetching config', e);
     }
   };
 
@@ -89,7 +101,7 @@ export default function LandingPage({ onLogin }) {
 
       {/* Main Content Area */}
       <div className="flex-1">
-        {activeView === 'landing' && <LandingContent setActiveView={setActiveView} />}
+        {activeView === 'landing' && <LandingContent setActiveView={setActiveView} pricingConfig={pricingConfig} />}
         {activeView === 'about' && <AboutView config={landingConfig} />}
         {activeView === 'privacy' && <PrivacyView />}
         {activeView === 'terms' && <TermsView />}
@@ -162,7 +174,7 @@ export default function LandingPage({ onLogin }) {
 // ---------------------------------------------------------
 // LANDING PAGE CONTENT
 // ---------------------------------------------------------
-function LandingContent({ setActiveView }) {
+function LandingContent({ setActiveView, pricingConfig }) {
   return (
     <>
       {/* Hero Section */}
@@ -332,62 +344,64 @@ function LandingContent({ setActiveView }) {
             <p className="text-slate-500 text-lg max-w-2xl mx-auto">Pilih lisensi yang paling cocok dengan ukuran institusi Anda.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 items-center">
-            {/* Basic Plan */}
-            <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Dasar (Basic)</h3>
-              <p className="text-slate-500 text-sm mb-6">Untuk SD/TK dengan jumlah kecil</p>
-              <div className="mb-6">
-                <span className="text-4xl font-black text-slate-900">Rp 250k</span>
-                <span className="text-slate-500 font-medium">/bulan</span>
+          {pricingConfig && (
+            <div className="grid md:grid-cols-3 gap-8 items-center">
+              {/* Basic Plan */}
+              <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Dasar (Basic)</h3>
+                <p className="text-slate-500 text-sm mb-6">Untuk SD/TK dengan jumlah kecil</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-slate-900">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(pricingConfig['Basic']?.price || 250000)}</span>
+                  <span className="text-slate-500 font-medium">/bulan</span>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Maksimal 200 Siswa</li>
+                  <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Absensi GPS Geofencing</li>
+                  <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Dasbor Admin Sekolah</li>
+                </ul>
+                <button onClick={() => setActiveView('register')} className="w-full py-3 rounded-xl border border-slate-900 text-slate-900 font-bold hover:bg-slate-200 transition-colors">
+                  Mulai Lisensi Dasar
+                </button>
               </div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Maksimal 200 Siswa</li>
-                <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Absensi GPS Geofencing</li>
-                <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Dasbor Admin Sekolah</li>
-              </ul>
-              <button onClick={() => setActiveView('register')} className="w-full py-3 rounded-xl border border-slate-900 text-slate-900 font-bold hover:bg-slate-200 transition-colors">
-                Mulai Lisensi Dasar
-              </button>
-            </div>
 
-            {/* Pro Plan */}
-            <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl relative transform md:-translate-y-4">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-900 px-4 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-sm">Standard Sekolah</div>
-              <h3 className="text-xl font-bold text-white mb-2">Profesional (Pro)</h3>
-              <p className="text-slate-400 text-sm mb-6">Mencegah penitipan absen secara total</p>
-              <div className="mb-6">
-                <span className="text-4xl font-black text-white">Rp 750k</span>
-                <span className="text-slate-400 font-medium">/bulan</span>
+              {/* Pro Plan */}
+              <div className="bg-slate-900 p-8 rounded-3xl border border-slate-800 shadow-2xl relative transform md:-translate-y-4">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-amber-500 text-slate-900 px-4 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-sm">Standard Sekolah</div>
+                <h3 className="text-xl font-bold text-white mb-2">Profesional (Pro)</h3>
+                <p className="text-slate-400 text-sm mb-6">Mencegah penitipan absen secara total</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-white">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(pricingConfig['Pro']?.price || 750000)}</span>
+                  <span className="text-slate-400 font-medium">/bulan</span>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3 text-sm text-white font-medium"><CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0"/> Maksimal 1.000 Siswa</li>
+                  <li className="flex items-center gap-3 text-sm text-white font-medium"><CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0"/> Face ID + Liveness Detection</li>
+                  <li className="flex items-center gap-3 text-sm text-white font-medium"><CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0"/> Notifikasi WhatsApp Orang Tua</li>
+                  <li className="flex items-center gap-3 text-sm text-white font-medium"><CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0"/> Fitur Surat Izin / Sakit Online</li>
+                </ul>
+                <button onClick={() => setActiveView('register')} className="w-full py-3 rounded-xl bg-amber-500 text-slate-900 font-black hover:bg-amber-400 hover:shadow-lg transition-all">
+                  Daftar Paket Pro
+                </button>
               </div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center gap-3 text-sm text-white font-medium"><CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0"/> Maksimal 1.000 Siswa</li>
-                <li className="flex items-center gap-3 text-sm text-white font-medium"><CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0"/> Face ID + Liveness Detection</li>
-                <li className="flex items-center gap-3 text-sm text-white font-medium"><CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0"/> Notifikasi WhatsApp Orang Tua</li>
-                <li className="flex items-center gap-3 text-sm text-white font-medium"><CheckCircle2 className="w-5 h-5 text-amber-400 shrink-0"/> Fitur Surat Izin / Sakit Online</li>
-              </ul>
-              <button onClick={() => setActiveView('register')} className="w-full py-3 rounded-xl bg-amber-500 text-slate-900 font-black hover:bg-amber-400 hover:shadow-lg transition-all">
-                Daftar Paket Pro
-              </button>
-            </div>
 
-            {/* Enterprise Plan */}
-            <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm">
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Instansi Besar</h3>
-              <p className="text-slate-500 text-sm mb-6">Untuk SMK / Universitas / Yayasan</p>
-              <div className="mb-6">
-                <span className="text-4xl font-black text-slate-900">Kustom</span>
+              {/* Enterprise Plan */}
+              <div className="bg-slate-50 p-8 rounded-3xl border border-slate-200 shadow-sm">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Instansi Besar</h3>
+                <p className="text-slate-500 text-sm mb-6">Untuk SMK / Universitas / Yayasan</p>
+                <div className="mb-6">
+                  <span className="text-4xl font-black text-slate-900">Kustom</span>
+                </div>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Siswa Tak Terbatas</li>
+                  <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Aplikasi Smart Kiosk Fisik</li>
+                  <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Database Server Terpisah</li>
+                </ul>
+                <button onClick={() => setActiveView('contact')} className="w-full py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-200 transition-colors">
+                  Hubungi Kami
+                </button>
               </div>
-              <ul className="space-y-4 mb-8">
-                <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Siswa Tak Terbatas</li>
-                <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Aplikasi Smart Kiosk Fisik</li>
-                <li className="flex items-center gap-3 text-sm text-slate-600 font-medium"><CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0"/> Database Server Terpisah</li>
-              </ul>
-              <button onClick={() => setActiveView('contact')} className="w-full py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-slate-200 transition-colors">
-                Hubungi Kami
-              </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
