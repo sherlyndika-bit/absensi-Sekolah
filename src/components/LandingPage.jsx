@@ -474,25 +474,40 @@ function ContactView({ config }) {
 function PrivacyView() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-20 min-h-[60vh] font-serif">
-      <h1 className="text-4xl font-black text-slate-900 mb-2 font-sans">Kebijakan Privasi Data Hukum</h1>
-      <p className="text-slate-500 mb-10 font-sans">Berlaku efektif sejak: 01 Januari 2026 | Dokumen Resmi No. 001/PRIV/26</p>
+      <h1 className="text-4xl font-black text-slate-900 mb-2 font-sans">Kebijakan Privasi Data & Perlindungan Informasi</h1>
+      <p className="text-slate-500 mb-10 font-sans">Pembaruan Terakhir: 15 Agustus 2026 | Dokumen No. 001/PRIV-AS/2026</p>
       
       <div className="prose prose-slate max-w-none text-slate-800 leading-relaxed text-justify space-y-6">
-        <p className="text-lg font-semibold">Dokumen ini merupakan perjanjian sah yang mengikat secara hukum antara Pengguna (Instansi Pendidikan, Siswa, dan Orang Tua/Wali) dengan PT AbsenSekolah Indonesia terkait pengumpulan, pemrosesan, dan perlindungan data pribadi dan data biometrik.</p>
+        <p className="text-lg font-semibold bg-slate-50 p-4 rounded-xl border border-slate-200">Kerahasiaan dan keamanan data Anda, terutama informasi biometrik peserta didik, adalah prioritas tertinggi kami. Dokumen ini disusun selaras dengan Undang-Undang Pelindungan Data Pribadi (UU PDP) Republik Indonesia untuk menguraikan secara transparan bagaimana PT AbsenSekolah Indonesia mengumpulkan, memproses, menyimpan, dan melindungi informasi Anda.</p>
 
-        <h3 className="text-xl font-bold text-slate-900 mt-8 mb-3 font-sans uppercase tracking-wider">Pasal 1: Definisi Data Biometrik & Penyimpanan</h3>
-        <p>1.1. <strong>Data Biometrik (Wajah)</strong>: Sistem kami menggunakan teknologi pengenalan wajah (*Face Recognition*). Data yang diunggah ke server <strong>BUKAN</strong> merupakan file gambar atau foto mentah berformat JPG/PNG. Sistem kecerdasan buatan (AI) kami merubah struktur wajah menjadi *Face Descriptors* berupa matriks angka (array Float32) yang panjangnya 128 dimensi. Matriks ini tidak dapat direkonstruksi ulang menjadi gambar wajah.</p>
-        <p>1.2. <strong>Isolasi Basis Data</strong>: Setiap instansi pendidikan (Sekolah/Universitas) yang terdaftar di AbsenSekolah dialokasikan pada skema basis data (*database schema*) mandiri yang dilindungi dengan *Row Level Security (RLS)*. Administrator Sekolah A secara teknis dan logis tidak akan memiliki kemampuan untuk mengakses, melihat, atau memanipulasi data biometrik milik Sekolah B.</p>
-
-        <h3 className="text-xl font-bold text-slate-900 mt-8 mb-3 font-sans uppercase tracking-wider">Pasal 2: Pengumpulan & Validasi Lokasi (Geofencing)</h3>
-        <p>2.1. Kami hanya mengumpulkan koordinat GPS (Garis Lintang dan Garis Bujur) pengguna secara seketika (*real-time*) <strong>HANYA</strong> ketika pengguna menekan tombol "Rekam Absen" di dalam aplikasi. Kami tidak melakukan pelacakan latar belakang (*background tracking*).</p>
-        <p>2.2. Koordinat ini secara otomatis dibandingkan dengan titik pusat dan radius sekolah yang telah ditentukan oleh Administrator Sekolah. Algoritma kami juga berupaya mendeteksi anomali seperti *GPS Spoofing* (Aplikasi GPS Palsu) untuk memastikan integritas kehadiran absensi siswa yang sah.</p>
-
-        <h3 className="text-xl font-bold text-slate-900 mt-8 mb-3 font-sans uppercase tracking-wider">Pasal 3: Berbagi Data kepada Pihak Ketiga</h3>
-        <p>3.1. PT AbsenSekolah Indonesia <strong>TIDAK PERNAH</strong> menjual, menyewakan, atau mendistribusikan data profil siswa, laporan kehadiran, maupun matriks biometrik kepada pihak ketiga (termasuk pemasang iklan atau pialang data).</p>
-        <p>3.2. Data hanya akan diserahkan atas perintah Pengadilan yang sah berdasarkan hukum Republik Indonesia yang berlaku (Undang-Undang Perlindungan Data Pribadi / UU PDP).</p>
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">1. Ruang Lingkup Kebijakan</h3>
+        <p>Kebijakan Privasi ini berlaku untuk seluruh platform yang disediakan oleh PT AbsenSekolah Indonesia, mencakup namun tidak terbatas pada: (a) Aplikasi mobile siswa/orang tua berbasis Android dan iOS, (b) Dasbor web pengelolaan administrasi (*Super Admin* dan *School Admin*), (c) Mesin *Smart Kiosk* fisik yang berlokasi di instansi pendidikan, dan (d) API/Webhooks terkait layanan kami.</p>
         
-        <p className="mt-12 text-sm text-slate-500">Dengan mengakses dasbor atau menggunakan aplikasi mobile kami, Anda secara eksplisit menyatakan telah membaca, memahami, dan menyetujui seluruh klausul dalam Kebijakan Privasi ini.</p>
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">2. Pengumpulan Data Biometrik & Identifikasi Wajah</h3>
+        <p><strong>2.1. Sifat Data Biometrik:</strong> Sistem pengenalan wajah (*Face Recognition*) yang terintegrasi pada platform kami didesain khusus agar <strong>tidak menyimpan citra/gambar wajah asli (.jpg, .png, dsb)</strong> dalam basis data permanen. Saat pendaftaran wajah dilakukan, algoritma kecerdasan buatan (AI) kami mengekstraksi 128 titik nodal (*nodal points*) wajah dan merubahnya menjadi matriks angka 128 dimensi (*Float32Array*). Deretan angka ini (disebut *Face Descriptor*) sepenuhnya tidak dapat direkayasa balik (*non-reversible*) menjadi gambar wajah fisik manusia.</p>
+        <p><strong>2.2. Deteksi Liveness:</strong> Untuk mencegah penipuan menggunakan foto dua dimensi atau video (*spoofing*), kami menggunakan teknologi pengenalan kontur mata dan deteksi kedipan (Eye Aspect Ratio / EAR). Kami mencatat koordinat 68 titik tengara (*landmarks*) sesaat selama proses ini, namun data kontur ini bersifat sementara (berada di RAM perangkat keras pengguna) dan langsung dimusnahkan segera setelah *Liveness Validation* menghasilkan output True/False.</p>
+        <p><strong>2.3. Penyimpanan Multi-Tenant:</strong> *Face Descriptors* milik masing-masing instansi pendidikan di-partisi dengan keamanan setingkat militer (*Row-Level Security/RLS*). Siswa dari "Sekolah A" tidak akan bisa diakses, dilihat, apalagi diverifikasi menggunakan infrastruktur "Sekolah B". Data biometrik hanya tersimpan selama institusi Anda masih menjalin kontrak kerja sama dengan PT AbsenSekolah Indonesia.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">3. Perekaman Lokasi (Geofencing)</h3>
+        <p><strong>3.1. Pengambilan Sesaat:</strong> Kami tidak pernah melacak posisi Anda di latar belakang (*background tracking*). Izin geolokasi hanya diminta dan diaktifkan secara eksklusif pada saat layar *Live Attendance* dibuka. Titik Latitude dan Longitude perangkat hanya diambil satu kali pada detik yang sama ketika tombol absensi ditekan.</p>
+        <p><strong>3.2. Deteksi GPS Palsu:</strong> Aplikasi kami dipersenjatai dengan kemampuan untuk mendeteksi *mock locations* (aplikasi GPS palsu) dari sistem operasi. Jika kami mendeteksi upaya manipulasi lokasi, data tersebut akan ditandai dengan peringatan ke dasbor Admin Sekolah, namun tidak dikirim ke pihak eksternal manapun.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">4. Data Anak & Persetujuan (Informed Consent)</h3>
+        <p>Sistem ini dirancang khusus untuk entitas pendidikan anak di bawah umur. Kami secara tegas mewajibkan Anda (sebagai Pihak Sekolah/Administrator Instansi) untuk memperoleh persetujuan tertulis secara formal dari orang tua/wali sah murid (*Informed Consent*) sebelum mendaftarkan wajah dan data pribadi murid ke dalam platform AbsenSekolah. Pihak AbsenSekolah berhak meminta dokumen *consent* dari institusi pendidikan untuk keperluan audit legal jika dirasa perlu.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">5. Pengungkapan kepada Pihak Ketiga</h3>
+        <p>Kami memiliki komitmen absolut: <strong>Kami tidak menjual, menyewakan, mentransfer, atau membarter data pengguna, metrik kehadiran, maupun informasi finansial kepada pihak ketiga atau pialang data (*data broker*).</strong> Pengungkapan informasi secara terbatas hanya akan terjadi pada skenario berikut:</p>
+        <ul className="list-disc pl-6 space-y-2 mt-4">
+          <li><strong>Proses Hukum Resmi:</strong> Jika diwajibkan oleh putusan pengadilan, panggilan pengadilan (*subpoena*), kepolisian RI, atau proses hukum yang sah secara konstitusional.</li>
+          <li><strong>Penyedia Infrastruktur Cloud:</strong> Data Anda disimpan di infrastruktur pihak ketiga (AWS/Supabase) yang dijamin kerahasiaannya dengan standar SOC-2 Type II dan ISO 27001, yang tidak berhak mengakses *raw data* dari platform Anda.</li>
+        </ul>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">6. Hak Pengguna (Sesuai UU PDP)</h3>
+        <p>Anda selaku subjek data memiliki hak untuk meminta pembaruan, perbaikan, pembekuan, atau pemusnahan penuh seluruh informasi (Hak untuk Dilupakan / *Right to be Forgotten*). Permintaan penghapusan total dapat dikirimkan dari pihak resmi institusi pendidikan kepada <strong>dpo@absenpro.id</strong> (Data Protection Officer) dan kami berkomitmen menyelesaikannya maksimal 3x24 jam kerja sejak surat permintaan kami terima secara sah.</p>
+
+        <div className="mt-16 pt-8 border-t border-slate-200">
+          <p className="text-sm text-slate-500">Dengan mengakses, mengunduh aplikasi, atau berinteraksi dengan API kami, Anda mengkonfirmasi bahwa Anda telah menyetujui praktik perlindungan privasi yang dijabarkan dalam dokumen sah ini tanpa ada paksaan dari pihak mana pun.</p>
+        </div>
       </div>
     </div>
   );
@@ -502,24 +517,36 @@ function TermsView() {
   return (
     <div className="max-w-4xl mx-auto px-6 py-20 min-h-[60vh] font-serif">
       <h1 className="text-4xl font-black text-slate-900 mb-2 font-sans">Syarat & Ketentuan Layanan (TOS)</h1>
-      <p className="text-slate-500 mb-10 font-sans">Berlaku efektif sejak: 01 Januari 2026 | Dokumen Resmi No. 002/TOS/26</p>
+      <p className="text-slate-500 mb-10 font-sans">Pembaruan Terakhir: 15 Agustus 2026 | Dokumen No. 002/TOS-AS/2026</p>
       
       <div className="prose prose-slate max-w-none text-slate-800 leading-relaxed text-justify space-y-6">
-        <p className="text-lg font-semibold">Selamat datang di AbsenSekolah (Layanan SaaS). Perjanjian ini mengatur ketentuan penggunaan perangkat lunak Manajemen Kehadiran Berbasis Kecerdasan Buatan yang disediakan oleh kami.</p>
+        <p className="text-lg font-semibold bg-slate-50 p-4 rounded-xl border border-slate-200">Silakan baca Perjanjian Ketentuan Layanan ini dengan sangat hati-hati. Dengan membuat akun, menandatangani kontrak berlangganan, atau menggunakan infrastruktur teknologi PT AbsenSekolah Indonesia, Anda ("Klien", "Sekolah", atau "Pengguna") tunduk pada syarat dan ketentuan hukum yang dijabarkan di bawah ini.</p>
 
-        <h3 className="text-xl font-bold text-slate-900 mt-8 mb-3 font-sans uppercase tracking-wider">Pasal 1: Penggunaan Berlisensi</h3>
-        <p>1.1. <strong>Tanggung Jawab Administrator Instansi</strong>: Anda, sebagai Administrator yang mendaftarkan Instansi Pendidikan, bertanggung jawab penuh secara hukum atas perizinan dari orang tua wali siswa (*Informed Consent*) untuk melakukan perekaman data wajah dan lokasi siswa. Kami bertindak semata-mata sebagai penyedia layanan sistem informasi (*Processor*) dan Anda bertindak sebagai pengendali data (*Controller*).</p>
-        <p>1.2. <strong>Penyalahgunaan Akun</strong>: Penggunaan aplikasi untuk melakukan tindak kecurangan massal (seperti mengeksploitasi celah API), pemalsuan identitas institusi pendidikan, atau penggunaan alat *bypass* dapat mengakibatkan pemberhentian layanan secara sepihak dan permanen tanpa pengembalian dana (*Refund*).</p>
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">Pasal 1: Ketentuan Umum & Definisi</h3>
+        <p>1.1. "Layanan" mengacu pada perangkat lunak sebagai layanan (*Software as a Service*), dasbor web, aplikasi mobile, model kecerdasan buatan, infrastruktur API, serta dokumentasi tertulis yang disediakan oleh PT AbsenSekolah Indonesia ("Kami").</p>
+        <p>1.2. Perjanjian ini beroperasi sebagai kontrak yang mengikat secara hukum di bawah yurisdiksi perundang-undangan hukum perdata dan pidana Republik Indonesia, secara spesifik mengacu pada Undang-Undang Informasi dan Transaksi Elektronik (UU ITE).</p>
 
-        <h3 className="text-xl font-bold text-slate-900 mt-8 mb-3 font-sans uppercase tracking-wider">Pasal 2: Sistem Pembayaran, Tagihan, dan Kuota</h3>
-        <p>2.1. <strong>Siklus Penagihan (Billing)</strong>: Seluruh biaya berlangganan (*Subscription*) berlaku prabayar di awal bulan atau awal tahun sesuai paket yang Anda pilih. Tagihan (*Invoice*) akan diterbitkan secara otomatis 7 hari sebelum masa aktif berakhir.</p>
-        <p>2.2. <strong>Penangguhan Layanan (Suspension)</strong>: Kegagalan dalam melunasi tagihan yang telah jatuh tempo selama lebih dari 14 hari kerja akan mengakibatkan akses dasbor Administrator dan aplikasi absensi Siswa ditangguhkan (Suspended). Data historis absensi tetap akan dipertahankan selama masa tenggang 60 hari sebelum dilakukan penghapusan permanen.</p>
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">Pasal 2: Hak Cipta dan Lisensi Penggunaan</h3>
+        <p>2.1. Kami memberi Anda lisensi yang tidak eksklusif, tidak dapat dialihkan (*non-transferable*), dan dapat dibatalkan sewaktu-waktu untuk menggunakan layanan kami. Seluruh Hak Kekayaan Intelektual (HAKI) termasuk kode sumber (*source code*), rancangan antarmuka pengguna, algoritma pengenalan wajah (*machine learning models*), dan merek dagang tetap mutlak menjadi hak milik PT AbsenSekolah Indonesia.</p>
+        <p>2.2. Pelanggaran berat seperti mencoba melakukan rekayasa balik (*reverse engineering*), membongkar kode keamanan (*decompiling*), atau menduplikasi fungsionalitas utama aplikasi untuk membuat perangkat lunak kompetitor (*cloning*) akan dilaporkan secara perdata dengan tuntutan ganti rugi materiil minimal senilai Rp 5.000.000.000 (Lima Miliar Rupiah) dan tuntutan pidana sesuai regulasi ITE.</p>
 
-        <h3 className="text-xl font-bold text-slate-900 mt-8 mb-3 font-sans uppercase tracking-wider">Pasal 3: Jaminan Layanan (SLA) & Kompensasi</h3>
-        <p>3.1. Kami memberikan jaminan ketersediaan sistem (*Service Level Agreement*) sebesar 99.9% pada paket Profesional dan Enterprise setiap bulannya.</p>
-        <p>3.2. Dalam keadaan *Force Majeure* (bencana alam, kerusakan infrastruktur nasional internet, dll), kewajiban SLA ini akan dikesampingkan.</p>
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">Pasal 3: Kewajiban Kontrak Instansi Sekolah</h3>
+        <p>3.1. <strong>Integritas Data:</strong> Anda menyatakan menjamin penuh bahwa data yang diunggah ke dalam sistem (termasuk Nomor Induk Siswa Nasional / NISN dan Nama Lengkap) adalah otentik dan legal. Penginputan data fiktif untuk mengeksploitasi sumber daya *server* akan berakibat pada pembekuan permanen ruang kerja (*workspace*) tanpa kompensasi dana.</p>
+        <p>3.2. <strong>Regulasi Edukasi:</strong> Segala keputusan kedisiplinan (pemberian poin pelanggaran, skorsing, atau denda akademik) yang timbul akibat data luaran dari sistem kami adalah sepenuhnya wewenang dan tanggung jawab penuh institusi sekolah bersangkutan. Kami tidak dapat digugat oleh wali murid atas tindakan indisipliner yang dijatuhkan pihak sekolah akibat rekam jejak digital dari platform ini.</p>
 
-        <p className="mt-12 text-sm text-slate-500 font-sans font-bold">Layanan Pelanggan Hukum: legal@absenpro.id</p>
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">Pasal 4: Finansial, SLA, dan Force Majeure</h3>
+        <p>4.1. <strong>Penagihan & Suspensi:</strong> Langganan (*Subscription*) berlaku dengan model *Post-paid* ataupun *Pre-paid* bulanan/tahunan. Jika invoice tertunggak melampaui masa *grace period* selama 14 hari kalender, akun institusi akan dibekukan (*suspended*) secara sepihak. Data riwayat (*logs*) akan dipertahankan dalam arsip dingin (*cold storage*) selama maksimal 90 hari sebelum dihapus permanen via siklus *garbage collection*.</p>
+        <p>4.2. <strong>Service Level Agreement (SLA):</strong> Kami menargetkan ketersediaan sistem sebesar 99.9% (uptime) per bulan takwim untuk pelanggan *Enterprise* dan *Pro*. Kami akan memberikan kompensasi kredit layanan sebanding jika *downtime* melampaui persentase tersebut (tidak termasuk *Scheduled Maintenance* yang akan diberitahukan minimal 48 jam sebelumnya).</p>
+        <p>4.3. <strong>Force Majeure:</strong> Baik Anda maupun Kami tidak dapat dimintai pertanggungjawaban atas gangguan sistem akibat Keadaan Kahar, yang meliputi namun tidak terbatas pada: gempa bumi, banjir bandang, pemutusan akses internet nasional oleh Kementerian Kominfo, perang, peretasan berskala nasional (*state-sponsored cyber attack*), atau kegagalan *data center* AWS/GCP regional Indonesia.</p>
+
+        <h3 className="text-xl font-bold text-slate-900 mt-12 mb-3 font-sans uppercase tracking-wider border-b-2 border-amber-500 inline-block">Pasal 5: Penyelesaian Sengketa (Arbitrase)</h3>
+        <p>Semua perselisihan yang mungkin timbul terkait dengan interpretasi atau eksekusi perjanjian ini, jika tidak dapat diselesaikan melalui mufakat internal (*B2B Negotiation*) dalam waktu 60 hari kalender, maka akan dirujuk dan diselesaikan di Pengadilan Negeri Jakarta Selatan secara eksklusif. Biaya perkara akan ditanggung oleh pihak yang pada akhirnya dinyatakan bersalah oleh majelis hakim.</p>
+
+        <div className="mt-16 pt-8 border-t border-slate-200">
+          <p className="text-sm font-bold text-slate-800">Dokumen Hukum PT AbsenSekolah Indonesia</p>
+          <p className="text-sm text-slate-500 mt-1">Gedung Pendidikan Modern Lantai 5, Jalan Merdeka Belajar No. 123, Jakarta Selatan 12190.</p>
+          <p className="text-sm text-slate-500 mt-1">Tim Legal Resmi: legal@absenpro.id | +62-21-9988-7766</p>
+        </div>
       </div>
     </div>
   );
