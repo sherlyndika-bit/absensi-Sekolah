@@ -63,7 +63,7 @@ export default function SuperAdminOverview() {
     <div className="p-4 sm:p-6 font-sans max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Bisnis Overview 📊</h1>
-        <p className="text-slate-500 mt-1 text-sm sm:text-base">Data analitik *real-time* langsung dari database Supabase Anda.</p>
+        <p className="text-slate-500 mt-1 text-sm sm:text-base">Data analitik *real-time* langsung dari database Cloud Utama Anda.</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
@@ -139,7 +139,7 @@ export default function SuperAdminOverview() {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-80 flex flex-col items-center justify-center text-slate-400">
         <Activity className="w-16 h-16 mb-4 opacity-20 text-indigo-500" />
         <p className="font-medium text-sm text-slate-600 mb-1">Live Database Connected</p>
-        <p className="text-xs max-w-sm text-center mt-2">Kartu analitik di atas saat ini dikalkulasi secara *real-time* langsung dari database Supabase Anda berdasarkan total sekolah, akun pengguna, paket langganan, dan obrolan yang masuk.</p>
+        <p className="text-xs max-w-sm text-center mt-2">Kartu analitik di atas saat ini dikalkulasi secara *real-time* langsung dari server pusat berdasarkan total sekolah, akun pengguna, paket langganan, dan obrolan yang masuk.</p>
       </div>
     </div>
   );

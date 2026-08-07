@@ -79,7 +79,7 @@ export default function SmartKiosk() {
 
   const handleSyncOfflineData = () => {
     if (offlineBufferCount > 0) {
-      alert(`Berhasil menyinkronkan ${offlineBufferCount} transaksi absensi lokal ke Supabase Database!`);
+      alert(`Berhasil menyinkronkan ${offlineBufferCount} transaksi absensi lokal ke Server Cloud!`);
       setOfflineBufferCount(0);
     }
   };

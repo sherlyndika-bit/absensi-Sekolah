@@ -26,7 +26,7 @@ export default function SuperAdminHealth() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-2xl border-t-4 border-t-emerald-500 shadow-sm">
           <div className="flex justify-between items-start mb-4">
-            <h4 className="font-bold text-slate-700">Database (Supabase)</h4>
+            <h4 className="font-bold text-slate-700">Database Server</h4>
             <Database className="w-5 h-5 text-emerald-500" />
           </div>
           <p className="text-3xl text-slate-900 font-black mt-2">99.99%</p>

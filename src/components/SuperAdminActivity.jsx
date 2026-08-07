@@ -30,7 +30,7 @@ export default function SuperAdminActivity() {
     <div className="p-4 sm:p-6 font-sans max-w-7xl mx-auto h-[calc(100vh-100px)] flex flex-col">
       <div className="mb-4 shrink-0">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Live Activity Logs ⚡</h1>
-        <p className="text-slate-500 mt-1 text-sm sm:text-base">Mendengarkan aktivitas seluruh sekolah menggunakan Supabase Realtime.</p>
+        <p className="text-slate-500 mt-1 text-sm sm:text-base">Mendengarkan aktivitas seluruh sekolah secara *real-time*.</p>
       </div>
       
       <div className="flex-1 bg-slate-900 rounded-2xl p-6 overflow-hidden flex flex-col shadow-xl border border-slate-800 relative">
